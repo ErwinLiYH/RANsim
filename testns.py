@@ -31,8 +31,12 @@ Tested in NS-3 3.4.0
 
 
 from ns import ns
+import pandas as pd
 
 dl_port = 1234
+
+udp_tx_record_df = pd.DataFrame(columns=["packet_id", "time"])
+udp_rx_record_df = pd.DataFrame(columns=["packet_id", "time"])
 
 # Function used to make callback for Rx and Tx events of UDP
 ns.cppyy.cppdef(
@@ -48,9 +52,11 @@ makeUdpTrace(void(*func)(std::string, Ptr<const Packet>)){
 
 def UdpTxCallback(contex, packet):
     print(f"At {ns.Simulator.Now().GetSeconds():.5f}s ,{contex}, Send {packet.__deref__().GetSize()} bytes data")
+    udp_tx_record_df.loc[len(udp_tx_record_df)] = [packet.__deref__().GetUid(), ns.Simulator.Now().GetSeconds()]
 
 def UdpRxCallback(contex, packet):
     print(f"At {ns.Simulator.Now().GetSeconds():.5f}s ,{contex}, received {packet.__deref__().GetSize()} bytes data")
+    udp_rx_record_df.loc[len(udp_rx_record_df)] = [packet.__deref__().GetUid(), ns.Simulator.Now().GetSeconds()]
 
 # Initialise LTE Helper
 lte_helper = ns.CreateObject("LteHelper")
@@ -170,9 +176,32 @@ ns.Config.Connect("/NodeList/*/ApplicationList/*/$ns3::UdpEchoServer/Rx", UdpRxC
 print("\n-------------------- Step1 0s-2.5s --------------------\n")
 ns.Simulator.Stop(ns.Seconds(2.5))
 ns.Simulator.Run()
+
+# Calculate delay
+merged_df = pd.merge(udp_rx_record_df, udp_tx_record_df, on='packet_id', suffixes=('_rx', '_tx'))
+merged_df['delay'] = merged_df['time_rx'] - merged_df['time_tx']
+delay = merged_df['delay'].mean()
+print("\n-------------------- summary --------------------\n")
+print(f"Sent: {len(udp_tx_record_df)} Packets")
+print(f"Received: {len(udp_rx_record_df)} Packets")
+print(f"Delay: {delay}")
+udp_rx_record_df.drop(index=udp_rx_record_df.index, inplace=True)
+udp_tx_record_df.drop(index=udp_tx_record_df.index, inplace=True)
+
 # Run simulation for 2.5s
 print("\n-------------------- Step2 2.5s-5s --------------------\n")
 ns.Simulator.Stop(ns.Seconds(5))
 ns.Simulator.Run()
+
+# Calculate delay
+merged_df = pd.merge(udp_rx_record_df, udp_tx_record_df, on='packet_id', suffixes=('_rx', '_tx'))
+merged_df['delay'] = merged_df['time_rx'] - merged_df['time_tx']
+delay = merged_df['delay'].mean()
+print("\n-------------------- summary --------------------\n")
+print(f"Sent: {len(udp_tx_record_df)} Packets")
+print(f"Received: {len(udp_rx_record_df)} Packets")
+print(f"Delay: {delay}")
+udp_rx_record_df.drop(index=udp_rx_record_df.index, inplace=True)
+udp_tx_record_df.drop(index=udp_tx_record_df.index, inplace=True)
 
 ns.Simulator.Destroy()
