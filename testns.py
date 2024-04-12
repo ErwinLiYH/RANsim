@@ -51,7 +51,7 @@ makeUdpTrace(void(*func)(std::string, Ptr<const Packet>)){
 """)
 
 def UdpTxCallback(contex, packet):
-    print(f"At {ns.Simulator.Now().GetSeconds():.5f}s ,{contex}, Send {packet.__deref__().GetSize()} bytes data")
+    print(f"At {ns.Simulator.Now().GetSeconds():.5f}s ,{contex}, Sent {packet.__deref__().GetSize()} bytes data")
     udp_tx_record_df.loc[len(udp_tx_record_df)] = [packet.__deref__().GetUid(), ns.Simulator.Now().GetSeconds()]
 
 def UdpRxCallback(contex, packet):
