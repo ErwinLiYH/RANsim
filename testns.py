@@ -3,6 +3,9 @@ This script is a simple LTE simulation to test if your NS-3 environment is set c
 Make sure you have package ns3 installed.
 
 Tested in NS-3 3.4.0
+
+Note: UDP packets' delay will not be affected by bandwidth deduction,
+because UDP packets will be dropped if too much. Go to testns_TCP.py for comparation.
 """
 
 #                        Network Structure
