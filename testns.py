@@ -111,7 +111,7 @@ ue_ip_interface = epc_helper.AssignUeIpv4Address(ue_devices)
 # Install p2p link between PGW and remote host
 p2p_helper.SetDeviceAttribute("DataRate", ns.DataRateValue(ns.DataRate("100Gb/s")))
 p2p_helper.SetDeviceAttribute("Mtu", ns.UintegerValue(1500))
-p2p_helper.SetChannelAttribute("Delay", ns.TimeValue(ns.MilliSeconds(10)))
+# p2p_helper.SetChannelAttribute("Delay", ns.TimeValue(ns.MilliSeconds(10)))
 p2p_link_device = p2p_helper.Install(pgw, remote_nodes.Get(0))
 
 # Assign IP to PGW and remote host
