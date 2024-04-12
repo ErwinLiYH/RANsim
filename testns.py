@@ -168,6 +168,19 @@ ns.Config.Connect("/NodeList/*/ApplicationList/*/$ns3::UdpEchoServer/Rx", UdpRxC
 # Enable eNodeB Traces
 # lte_helper.EnableTraces()
 
+# ---------- Get configurations ---------- #
+
+print("\n-------------------- eNodeB configurations --------------------\n")
+enb_node = enb_nodes.Get(0)
+enb_node_id = enb_node.GetId()
+print(f"eNodeB Node ID: {enb_node_id}")
+
+enb_net_device = enb_node.GetDevice(0).GetObject["LteEnbNetDevice"]()
+print(f"eNodeB downlink Bandwidth:{enb_net_device.GetDlBandwidth()}")
+print(f"eNodeB downlink Earfcn:{enb_net_device.GetDlEarfcn()}")
+print(f"eNodeB uplink Bandwidth:{enb_net_device.GetUlBandwidth()}")
+print(f"eNodeB uplink Earfcn:{enb_net_device.GetUlEarfcn()}")
+
 # ---------- Run Simulation ---------- #
 
 # Simulate RL Gym environment, so set two steps here
@@ -187,6 +200,15 @@ print(f"Received: {len(udp_rx_record_df)} Packets")
 print(f"Delay: {delay}")
 udp_rx_record_df.drop(index=udp_rx_record_df.index, inplace=True)
 udp_tx_record_df.drop(index=udp_tx_record_df.index, inplace=True)
+
+# Dynamically adjust bandwidth
+ns.Config.Set(f"/NodeList/{enb_node_id}/DeviceList/0/$ns3::LteEnbNetDevice/UlBandwidth", ns.UintegerValue(6))
+ns.Config.Set(f"/NodeList/{enb_node_id}/DeviceList/0/$ns3::LteEnbNetDevice/DlBandwidth", ns.UintegerValue(6))
+print("\n-------------------- configuration changed --------------------\n")
+print(f"eNodeB downlink Bandwidth:{enb_net_device.GetDlBandwidth()}")
+print(f"eNodeB downlink Earfcn:{enb_net_device.GetDlEarfcn()}")
+print(f"eNodeB uplink Bandwidth:{enb_net_device.GetUlBandwidth()}")
+print(f"eNodeB uplink Earfcn:{enb_net_device.GetUlEarfcn()}")
 
 # Run simulation for 2.5s
 print("\n-------------------- Step2 2.5s-5s --------------------\n")
