@@ -32,9 +32,36 @@ Contain delay and rate statistics.
 #          +-------------+
 
 
+# Add temp PYTHONPATH
+import os
+import sys
+ns_build_root = "/home/yl1118/Desktop/ns-allinone-3.41/ns-3.41/build"
+binding_path = os.path.join(ns_build_root, "bindings/python")
+lib_path = os.path.join(ns_build_root, "lib")
+include_path = os.path.join(ns_build_root, "include")
+if binding_path not in sys.path:
+    sys.path.append(binding_path)
+current_PATH = os.environ.get('PATH', '')
+current_LD_LIBRARY_PATH = os.environ.get('LD_LIBRARY_PATH', '')
+os.environ["PATH"] = lib_path + os.pathsep+ current_PATH
+os.environ["LD_LIBRARY_PATH"] = include_path + os.pathsep + current_LD_LIBRARY_PATH
+# export LD_PRELOAD="/lib/x86_64-linux-gnu/libffi.so.7"
+
 from ns import ns
 import pandas as pd
 
+# Log setting
+# logLevel = ns.LOG_INFO
+# ns.LogComponentEnable("LteEnbMac", logLevel)
+# ns.LogComponentEnable("LteEnbRrc", logLevel)
+# ns.LogComponentEnable("EpcEnbApplication", logLevel)
+# ns.LogComponentEnable("LtePhy", logLevel)
+# ns.LogComponentEnable("LteEnbPhy", logLevel)
+# ns.LogComponentEnable("LteUePhy", logLevel)
+# ns.LogComponentEnable("LteRlc", logLevel)
+# ns.LogComponentEnable("LtePdcp", logLevel)
+
+# Pandas setting
 pd.set_option('display.max_rows', None)
 pd.set_option('display.expand_frame_repr', False) 
 
@@ -45,17 +72,33 @@ tx_record_df = pd.DataFrame(columns=["uid", "size", "time", "step", "src", "dest
 rx_record_df = pd.DataFrame(columns=["uid", "size", "time", "step", "src", "dest", "seq_num"])
 
 def statistic_report(df1, df2):
-    sent_number = len(df1)
-    recv_number = len(df2)
-    delivery_rate = recv_number/sent_number
-    merged_df = pd.merge(df1, df2, on=['seq_num', 'src'], suffixes=('_tx', '_rx'))
-    average_delay = (merged_df["time_rx"]-merged_df["time_tx"]).mean()
-    rate = merged_df["size_rx"].sum() / (merged_df["time_rx"].max()-merged_df["time_rx"].min())
-    x = (merged_df["time_rx"].max()-merged_df["time_rx"].min())
-    y = merged_df["size_rx"].sum()
-    print(f"delay: {average_delay} s", f"delivery rate: {delivery_rate}", f"rate: {rate*8/1024/1024} Mbps")
-    # df1.drop()
+    """
+    df1 for tx
+    df2 for rx
+    """
+    # print(df1)
+    # print(df2)
+    sent_number = len(df1[df1["step"]==step])
+    print(f"sent {sent_number} packet in step {step}")
+    merged_df = pd.merge(df1, df2, on=['seq_num', 'src'], suffixes=('_tx', '_rx'), how='left', indicator=True)
     # print(merged_df)
+    recv_number_in_step = len(merged_df[(merged_df['_merge'] == 'both') & (merged_df['step_tx'] == step)])
+    recv_number_total = len(df2)
+    receive_info = merged_df[merged_df['_merge'] == 'both']['step_tx'].value_counts()
+    for i in receive_info.index:
+        print(f"received {receive_info[i]} packet from step {i}")
+    # print(f"received {recv_number_in_step} packet sent in step {step}")
+    print(f"received {recv_number_total} packet in total")
+    try:
+        delivery_rate = recv_number_in_step/sent_number
+    except:
+        delivery_rate = 1
+    average_delay = (merged_df[merged_df['_merge'] == 'both']["time_rx"]-merged_df[merged_df['_merge'] == 'both']["time_tx"]).mean()
+    rate = merged_df["size_rx"].sum() / (merged_df["time_rx"].max()-merged_df["time_rx"].min())
+    print(f"delay: {average_delay} s\ndelivery rate: {delivery_rate}\nrate: {rate*8/1024/1024} Mbps")
+    df1.drop(merged_df[merged_df['_merge'] == 'both'].index, inplace=True)
+    df1.reset_index(drop=True, inplace=True)
+    df2.drop(df2.index, inplace=True)
 
 step = 0
 
@@ -133,7 +176,7 @@ pgw = epc_helper.GetPgwNode()
 
 # Set container for eNodeB
 enb_nodes = ns.NodeContainer()
-enb_nodes.Create(1)
+enb_nodes.Create(2)
 
 # Set container for UE
 ue_nodes = ns.NodeContainer()
@@ -154,18 +197,28 @@ mobilityhelper.Install(ue_nodes)
 # ---------- Initialise network ---------- #
 
 # Install device to Node
-lte_helper.SetEnbDeviceAttribute("UlBandwidth", ns.UintegerValue(100))
-enb_devices = lte_helper.InstallEnbDevice(enb_nodes)
+lte_helper.SetEnbDeviceAttribute("UlBandwidth", ns.UintegerValue(45))
+# lte_helper.SetEpcHelper(epc_helper)
+enb_devices1 = lte_helper.InstallEnbDevice(enb_nodes.Get(0))
+lte_helper.SetEnbDeviceAttribute("UlBandwidth", ns.UintegerValue(90))
+# lte_helper.SetEpcHelper(epc_helper)
+enb_devices2 = lte_helper.InstallEnbDevice(enb_nodes.Get(1))
 ue_devices = lte_helper.InstallUeDevice(ue_nodes)
-enb_node = enb_nodes.Get(0)
-enb_node_id = enb_node.GetId()
-ns.Config.Set(f"/NodeList/*/DeviceList/*/$ns3::LteNetDevice/$ns3::LteEnbNetDevice/UlBandwidth", ns.UintegerValue(6))
+
+# Get devices from devices container
+LteEnbNetDevices_list = []
+LteEnbNetDevices_list.append(enb_devices1.Get(0).GetObject["LteEnbNetDevice"]())
+LteEnbNetDevices_list.append(enb_devices2.Get(0).GetObject["LteEnbNetDevice"]())
 
 # Install network stack to UE and remote host
 internet = ns.InternetStackHelper()
 internet.Install(ue_nodes)
 internet.Install(remote_nodes)
 ue_ip_interface = epc_helper.AssignUeIpv4Address(ue_devices)
+
+# Install network stack and X2 interface to eNodeBs
+internet.Install(enb_nodes)
+lte_helper.AddX2Interface(enb_nodes)
 
 # Install p2p link between PGW and remote host
 p2p_helper.SetDeviceAttribute("DataRate", ns.DataRateValue(ns.DataRate("100Gb/s")))
@@ -207,7 +260,7 @@ for i in range(ue_nodes.GetN()):
     tcp_client = ns.OnOffHelper("ns3::UdpSocketFactory", ns.InetSocketAddress(p2p_ip_interface.GetAddress(1), port).ConvertTo())
     tcp_client.SetAttribute("OnTime", ns.StringValue("ns3::ConstantRandomVariable[Constant=1]"))
     tcp_client.SetAttribute("OffTime", ns.StringValue("ns3::ConstantRandomVariable[Constant=0]"))
-    tcp_client.SetAttribute("DataRate", ns.StringValue("100Mbps"));
+    tcp_client.SetAttribute("DataRate", ns.StringValue("30Mbps"));
     tcp_client.SetAttribute("PacketSize", ns.UintegerValue(512))
     tcp_client.SetAttribute("EnableSeqTsSizeHeader", ns.BooleanValue(1))
     # if not set Local attr, the source ip when using UDP will be 0.0.0.0
@@ -242,71 +295,66 @@ ns.Config.Connect("/NodeList/*/ApplicationList/*/$ns3::PacketSink/RxWithSeqTsSiz
 
 print("\n-------------------- eNodeB configurations --------------------\n")
 enb_node = enb_nodes.Get(0)
-x = enb_devices.GetN()
-y = enb_node.GetNDevices()
 enb_node_id = enb_node.GetId()
 print(f"eNodeB Node ID: {enb_node_id}")
 
-# for i in range(enb_node.GetNDevices()):
-enb_net_device = enb_node.GetDevice(0).GetObject["LteEnbNetDevice"]()
-print(f"eNodeB downlink Bandwidth:{enb_net_device.GetDlBandwidth()}")
-print(f"eNodeB downlink Earfcn:{enb_net_device.GetDlEarfcn()}")
-print(f"eNodeB uplink Bandwidth:{enb_net_device.GetUlBandwidth()}")
-print(f"eNodeB uplink Earfcn:{enb_net_device.GetUlEarfcn()}")
+print(f"eNodeB downlink Bandwidth:{LteEnbNetDevices_list[0].GetDlBandwidth()}")
+print(f"eNodeB downlink Earfcn:{LteEnbNetDevices_list[0].GetDlEarfcn()}")
+print(f"eNodeB uplink Bandwidth:{LteEnbNetDevices_list[0].GetUlBandwidth()}")
+print(f"eNodeB uplink Earfcn:{LteEnbNetDevices_list[0].GetUlEarfcn()}")
 
 # ---------- Run Simulation ---------- #
 
 # Simulate RL Gym environment, so set two steps here
 
-# Run simulation for 2.5s
-# print("\n-------------------- Step1 0s-2.5s --------------------\n")
-# ns.Simulator.Stop(ns.Seconds(5))
-# ns.Simulator.Run()
-# step+=1
+# Run simulation for 0.05s
+print("\n-------------------- Step1 2.0s-2.0.5s --------------------\n")
+ns.Simulator.Stop(ns.Seconds(2.05))
+ns.Simulator.Run()
 
 # Calculate delay
-# merged_df = pd.merge(udp_rx_record_df, udp_tx_record_df, on='packet_id', suffixes=('_rx', '_tx'))
-# merged_df['delay'] = merged_df['time_rx'] - merged_df['time_tx']
-# delay = merged_df['delay'].mean()
-# print("\n-------------------- summary --------------------\n")
-# print(f"Sent: {len(udp_tx_record_df)} Packets")
-# print(f"Received: {len(udp_rx_record_df)} Packets")
-# print(f"Delay: {delay}")
-# udp_rx_record_df.drop(index=udp_rx_record_df.index, inplace=True)
-# udp_tx_record_df.drop(index=udp_tx_record_df.index, inplace=True)
+statistic_report(tx_record_df,rx_record_df)
+step+=1
 
 # Dynamically adjust bandwidth
 # ns.Config.Set(f"/NodeList/{enb_node_id}/DeviceList/*/$ns3::LteNetDevice/$ns3::LteEnbNetDevice/UlBandwidth", ns.UintegerValue(6))
 # ns.Config.Set(f"/NodeList/{enb_node_id}/DeviceList/*/$ns3::LteNetDevice/$ns3::LteEnbNetDevice/DlBandwidth", ns.UintegerValue(6))
-# enb_net_device.SetUlBandwidth(6)
-# enb_net_device.SetDlBandwidth(6)
-# enb_net_device.DoInitialize()
-print("\n-------------------- configuration changed --------------------\n")
-print(f"eNodeB downlink Bandwidth:{enb_net_device.GetDlBandwidth()}")
-print(f"eNodeB downlink Earfcn:{enb_net_device.GetDlEarfcn()}")
-print(f"eNodeB uplink Bandwidth:{enb_net_device.GetUlBandwidth()}")
-print(f"eNodeB uplink Earfcn:{enb_net_device.GetUlEarfcn()}")
+lte_helper.HandoverRequest(ns.Seconds(0), ue_devices.Get(0), LteEnbNetDevices_list[0], LteEnbNetDevices_list[1])
+lte_helper.HandoverRequest(ns.Seconds(0), ue_devices.Get(1), LteEnbNetDevices_list[0], LteEnbNetDevices_list[1])
+lte_helper.HandoverRequest(ns.Seconds(0), ue_devices.Get(2), LteEnbNetDevices_list[0], LteEnbNetDevices_list[1])
 
-# Run simulation for 2.5s
-# print("\n-------------------- Step2 2.5s-5s --------------------\n")
-ns.Simulator.Stop(ns.Seconds(10))
+
+print("\n-------------------- configuration changed --------------------\n")
+print("Configuration changed!")
+print(f"eNodeB downlink Bandwidth:{LteEnbNetDevices_list[1].GetDlBandwidth()}")
+print(f"eNodeB downlink Earfcn:{LteEnbNetDevices_list[1].GetDlEarfcn()}")
+print(f"eNodeB uplink Bandwidth:{LteEnbNetDevices_list[1].GetUlBandwidth()}")
+print(f"eNodeB uplink Earfcn:{LteEnbNetDevices_list[1].GetUlEarfcn()}")
+
+# Run simulation for 0.05s
+print("\n-------------------- Step2 2.05s-2.1s --------------------\n")
+ns.Simulator.Stop(ns.Seconds(0.05))
 ns.Simulator.Run()
-# step+=1
 
 # Calculate delay
-# merged_df = pd.merge(udp_rx_record_df, udp_tx_record_df, on='packet_id', suffixes=('_rx', '_tx'))
-# merged_df['delay'] = merged_df['time_rx'] - merged_df['time_tx']
-# delay = merged_df['delay'].mean()
-# print("\n-------------------- summary --------------------\n")
-# print(f"Sent: {len(udp_tx_record_df)} Packets")
-# print(f"Received: {len(udp_rx_record_df)} Packets")
-# print(f"Delay: {delay}")
-# udp_rx_record_df.drop(index=udp_rx_record_df.index, inplace=True)
-# udp_tx_record_df.drop(index=udp_tx_record_df.index, inplace=True)
-# print(rx_record_df)
-# print(rx_record_df.dtypes)
-# print(tx_record_df)
-# print(tx_record_df.dtypes)
 statistic_report(tx_record_df,rx_record_df)
+step+=1
+
+# Run simulation for 0.05s
+print("\n-------------------- Step3 2.1s-2.15s --------------------\n")
+ns.Simulator.Stop(ns.Seconds(0.05))
+ns.Simulator.Run()
+
+# Calculate delay
+statistic_report(tx_record_df,rx_record_df)
+step+=1
+
+for i in range(10):
+    ns.Simulator.Stop(ns.Seconds(0.05))
+    ns.Simulator.Run()
+
+    # Calculate delay
+    statistic_report(tx_record_df,rx_record_df)
+    step+=1
 
 ns.Simulator.Destroy()
