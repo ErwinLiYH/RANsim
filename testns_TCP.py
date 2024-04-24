@@ -156,6 +156,9 @@ def TxWithAddresses_callback(contex, packet, address_src, address_dest):
     print(f"Context: {contex}, from {address_src.GetIpv4()}:{address_src.GetPort()} to {address_dest.GetIpv4()}:{address_dest.GetPort()}")
     tx_record_df.loc[len(tx_record_df)] = [packet.__deref__().GetUid(), packet.__deref__().GetSize(), ns.Simulator.Now().GetSeconds(), step, f"{address_src.GetIpv4()}:{address_src.GetPort()}", f"{address_dest.GetIpv4()}:{address_dest.GetPort()}"]
 
+ns.Config.SetDefault("ns3::LteSpectrumPhy::CtrlErrorModelEnabled", ns.BooleanValue(0))
+ns.Config.SetDefault("ns3::LteSpectrumPhy::DataErrorModelEnabled", ns.BooleanValue(0))
+
 # Initialise LTE Helper
 lte_helper = ns.CreateObject("LteHelper")
 # Some bugs in LteHelper, must use CreateObject, cannot use constructor
