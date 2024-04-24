@@ -311,7 +311,7 @@ print(f"eNodeB uplink Earfcn:{LteEnbNetDevices_list[0].GetUlEarfcn()}")
 # Simulate RL Gym environment, so set two steps here
 
 # Run simulation for 0.05s
-print("\n-------------------- Step1 2.0s-2.0.5s --------------------\n")
+print("\n-------------------- Step0 2.0s-2.0.5s --------------------\n")
 ns.Simulator.Stop(ns.Seconds(2.05))
 ns.Simulator.Run()
 
@@ -335,7 +335,7 @@ print(f"eNodeB uplink Bandwidth:{LteEnbNetDevices_list[1].GetUlBandwidth()}")
 print(f"eNodeB uplink Earfcn:{LteEnbNetDevices_list[1].GetUlEarfcn()}")
 
 # Run simulation for 0.05s
-print("\n-------------------- Step2 2.05s-2.1s --------------------\n")
+print("\n-------------------- Step1 2.05s-2.1s --------------------\n")
 ns.Simulator.Stop(ns.Seconds(0.05))
 ns.Simulator.Run()
 
@@ -344,7 +344,7 @@ statistic_report(tx_record_df,rx_record_df)
 step+=1
 
 # Run simulation for 0.05s
-print("\n-------------------- Step3 2.1s-2.15s --------------------\n")
+print("\n-------------------- Step2 2.1s-2.15s --------------------\n")
 ns.Simulator.Stop(ns.Seconds(0.05))
 ns.Simulator.Run()
 
