@@ -200,10 +200,10 @@ mobilityhelper.Install(ue_nodes)
 # ---------- Initialise network ---------- #
 
 # Install device to Node
-lte_helper.SetEnbDeviceAttribute("UlBandwidth", ns.UintegerValue(45))
+lte_helper.SetEnbDeviceAttribute("UlBandwidth", ns.UintegerValue(50))
 # lte_helper.SetEpcHelper(epc_helper)
 enb_devices1 = lte_helper.InstallEnbDevice(enb_nodes.Get(0))
-lte_helper.SetEnbDeviceAttribute("UlBandwidth", ns.UintegerValue(90))
+lte_helper.SetEnbDeviceAttribute("UlBandwidth", ns.UintegerValue(100))
 # lte_helper.SetEpcHelper(epc_helper)
 enb_devices2 = lte_helper.InstallEnbDevice(enb_nodes.Get(1))
 ue_devices = lte_helper.InstallUeDevice(ue_nodes)
