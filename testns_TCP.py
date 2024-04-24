@@ -250,7 +250,7 @@ lte_helper.Attach(ue_devices)
 # ---------- Install TCP server ---------- #
 
 # Install Sink app to remote host
-tcp_sink = ns.PacketSinkHelper("ns3::UdpSocketFactory", ns.InetSocketAddress(ns.Ipv4Address.GetAny(), port).ConvertTo())
+tcp_sink = ns.PacketSinkHelper("ns3::TcpSocketFactory", ns.InetSocketAddress(ns.Ipv4Address.GetAny(), port).ConvertTo())
 tcp_sink.SetAttribute("EnableSeqTsSizeHeader", ns.BooleanValue(1))
 tcp_sink_apps = tcp_sink.Install(remote_nodes.Get(0))
 tcp_sink_apps.Start(ns.Seconds(0.1))
@@ -260,7 +260,7 @@ tcp_sink_apps.Stop(ns.Seconds(5.0))
 
 # Install TCP client to UEs
 for i in range(ue_nodes.GetN()):
-    tcp_client = ns.OnOffHelper("ns3::UdpSocketFactory", ns.InetSocketAddress(p2p_ip_interface.GetAddress(1), port).ConvertTo())
+    tcp_client = ns.OnOffHelper("ns3::TcpSocketFactory", ns.InetSocketAddress(p2p_ip_interface.GetAddress(1), port).ConvertTo())
     tcp_client.SetAttribute("OnTime", ns.StringValue("ns3::ConstantRandomVariable[Constant=1]"))
     tcp_client.SetAttribute("OffTime", ns.StringValue("ns3::ConstantRandomVariable[Constant=0]"))
     tcp_client.SetAttribute("DataRate", ns.StringValue("30Mbps"));
