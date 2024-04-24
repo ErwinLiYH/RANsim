@@ -227,7 +227,9 @@ class RanSlice:
                 self.logger.info(f"Received {receive_info[i]} packet from step {i}.")
             self.logger.info(f"Min delay: {min_delay}")
             self.logger.info(f"Max delay: {max_delay}")
-            self.logger.info(f"Avg delay: {average_delay} s; Delivery rate: {delivery_rate}; Rate: {rate} Mbps")
+            self.logger.info(f"Avg delay: {average_delay} s")
+            self.logger.info(f"Delivery rate: {delivery_rate}")
+            self.logger.info(f"Throughput: {rate} Mbps")
 
         # record report
         self.stat_df.loc[len(self.stat_df)] = [step, sent_number, recv_number_total, receive_info[step], min_delay, max_delay, average_delay, delivery_rate, rate]
