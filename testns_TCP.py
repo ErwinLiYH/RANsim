@@ -353,6 +353,7 @@ statistic_report(tx_record_df,rx_record_df)
 step+=1
 
 for i in range(10):
+    print(f"\n-------------------- Step{step} {2+(step)*0.05}s-{2+(step+1)*0.05}s --------------------\n")
     ns.Simulator.Stop(ns.Seconds(0.05))
     ns.Simulator.Run()
 
