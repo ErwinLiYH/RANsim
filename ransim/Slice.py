@@ -243,6 +243,7 @@ class RanSlice:
         return self.stat_df.loc[len(self.stat_df)-1]
     
     def handoverTo(self, N_RAB:int):
+        self.logger.info(f"-------------------- step {step} handover --------------------")
         if N_RAB != self.current_RB:
             for i in range(self.N_UEs):
                 self.logger.info(f"UE {self.ids['UEs'][i]} handover to eNodeB with RB {N_RAB}")
