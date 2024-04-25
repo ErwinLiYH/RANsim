@@ -283,6 +283,10 @@ class RanSlice:
             nsVector3D = self.ue_nodes.Get(i).GetObject["ConstantPositionMobilityModel"]().GetPosition()
             res.append((nsVector3D.x, nsVector3D.y, nsVector3D.z))
         return res
+    
+    def clean_stat(self):
+        self.stat_df.drop(self.stat_df.index, inplace=True)
+        self.stat_df.reset_index(drop=True, inplace=True)
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}[{self.N_UEs} UEs & {self.min_RB}:{self.RB_resolution}:{self.max_RB} eNodeBs]>"
