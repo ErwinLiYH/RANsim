@@ -253,6 +253,35 @@ class RanSlice:
             self.logger.info(f"Retain in eNodeB with RB {N_RAB}")
             self.changed_RB = False
 
+    def set_enb_location(self, x):
+        # Set location of eNodeBs to (x, 0, 0)
+        for i in range(self.enb_nodes.GetN()):
+            self.enb_nodes.Get(i).GetObject["ConstantPositionMobilityModel"]().SetPosition(ns.Vector(x, 0, 0))
+
+    def get_enb_location(self):
+        # Get location of eNodeBs
+        res = set()
+        for i in range(self.enb_nodes.GetN()):
+            nsVector3D = self.enb_nodes.Get(i).GetObject["ConstantPositionMobilityModel"]().GetPosition()
+            res.add((nsVector3D.x, nsVector3D.y, nsVector3D.z))
+        if len(res) == 1:
+            return res.pop()
+        else:
+            raise ValueError("Virtual eNodeBs are not in the same location")
+
+    def set_ue_location(self, x, ue_range):
+        # Set location of UEs to (x, 0, 0) with random x, y in range (-ue_range, ue_range)
+        for i in range(self.N_UEs):
+            self.ue_nodes.Get(i).GetObject["ConstantPositionMobilityModel"]().SetPosition(ns.Vector(random.uniform(x-ue_range, x+ue_range), random.uniform(-ue_range, ue_range), 0))
+
+    def get_ue_location(self):
+        # Get location of UEs
+        res = []
+        for i in range(self.N_UEs):
+            nsVector3D = self.ue_nodes.Get(i).GetObject["ConstantPositionMobilityModel"]().GetPosition()
+            res.append((nsVector3D.x, nsVector3D.y, nsVector3D.z))
+        return res
+
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}[{self.N_UEs} UEs & {self.min_RB}:{self.RB_resolution}:{self.max_RB} eNodeBs]>"
     
