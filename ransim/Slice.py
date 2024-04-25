@@ -123,7 +123,7 @@ class RanSlice:
             "eNodeBs": []
         }
         self.ue_ips = []
-        self.stat_df = pd.DataFrame(columns=["step", "nSend", "nRecv", "nRecvStep", "minDelay", "maxDelay", "avgDelay", "delivRate", "Rate"])
+        self.stat_df = pd.DataFrame(columns=["step", "nSend", "nRecv", "nRecvStep", "minDelay", "maxDelay", "avgDelay", "delivRate", "throughput", "rate"])
         self.logger = logger
 
         # Create eNodeB nodes
@@ -186,7 +186,7 @@ class RanSlice:
         # Attach UEs to initial eNodeB
         lte_helper.Attach(self.ue_devices, self.enb_divices[initial_RB].Get(0))
 
-    def stat_report(self) -> pd.Series:
+    def stat_report(self, step_time) -> pd.Series:
         """
         Analyze the permformance of the slice in this step.
         """
@@ -214,9 +214,13 @@ class RanSlice:
         max_delay = temp.max()
         min_delay = temp.min()
 
-        # Rate: total received size / (first receiving time - last receiving time)
-        rate = sub_merged_df["size_rx"].sum() / (sub_merged_df["time_rx"].max()-sub_merged_df["time_rx"].min())
+        # Rate (Mb/s): avg(packet size / (receiving time - sending time))
+        rate = (sub_merged_df[sub_merged_df['_merge'] == 'both']["size_rx"] / temp).mean()
         rate = rate*8/1024/1024
+
+        # Throughput (Mb/s): total received size / step time
+        throughput = sub_merged_df["size_rx"].sum() / step_time
+        throughput = throughput*8/1024/1024
 
         # Log report
         if self.logger:
@@ -225,14 +229,15 @@ class RanSlice:
             self.logger.info(f"Received {recv_number_total} packet in total.")
             for i in receive_info.index:
                 self.logger.info(f"Received {receive_info[i]} packet from step {i}.")
-            self.logger.info(f"Min delay: {min_delay}")
-            self.logger.info(f"Max delay: {max_delay}")
+            self.logger.info(f"Min delay: {min_delay} s")
+            self.logger.info(f"Max delay: {max_delay} s")
             self.logger.info(f"Avg delay: {average_delay} s")
             self.logger.info(f"Delivery rate: {delivery_rate}")
-            self.logger.info(f"Throughput: {rate} Mbps")
+            self.logger.info(f"Throughput: {throughput} Mb/s")
+            self.logger.info(f"Rate: {rate} Mb/s")
 
         # record report
-        self.stat_df.loc[len(self.stat_df)] = [step, sent_number, recv_number_total, receive_info[step], min_delay, max_delay, average_delay, delivery_rate, rate]
+        self.stat_df.loc[len(self.stat_df)] = [step, sent_number, recv_number_total, receive_info[step], min_delay, max_delay, average_delay, delivery_rate, throughput, rate]
 
         return self.stat_df.loc[len(self.stat_df)-1]
     
@@ -281,12 +286,12 @@ class OnOffSlice(RanSlice):
             self.tcp_client_apps.Start(onoff_config.start_time)
             self.tcp_client_apps.Stop(onoff_config.stop_time)
 
-    def reward(self):
+    def reward(self, step_time):
         """
         An example of reward function. It just returns the rate of the slice in this step.
         """
-        stat = self.stat_report()
-        return stat["Rate"]
+        stat = self.stat_report(step_time)
+        return stat["rate"]
 
 class EmbbSlice(RanSlice):
     pass
