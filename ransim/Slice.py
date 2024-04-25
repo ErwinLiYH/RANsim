@@ -5,6 +5,9 @@ from ns import ns
 from .utils import OnOffAppConfig, SinkAppConfig, logging_helper, list_to_abbr_str
 
 
+# Current time
+current_time = 0
+
 # -------------------- DataFrames for recording Tx and Rx events --------------------
 
 step=0
@@ -226,7 +229,7 @@ class RanSlice:
 
         # Log report
         if self.logger:
-            self.logger.info(f"-------------------- step {step} report --------------------")
+            self.logger.info(f"-------------------- step {step} report <{current_time}s - {current_time+step_time}s> --------------------")
             self.logger.info(f"Sent {sent_number} packet in step {step}.")
             self.logger.info(f"Received {recv_number_total} packet in total.")
             for i in receive_info.index:
@@ -239,7 +242,7 @@ class RanSlice:
             self.logger.info(f"Rate: {rate} Mb/s")
 
         # record report
-        self.stat_df.loc[len(self.stat_df)] = [step, sent_number, recv_number_total, receive_info[step], min_delay, max_delay, average_delay, delivery_rate, throughput, rate]
+        self.stat_df.loc[len(self.stat_df)] = [step, sent_number, recv_number_total, recv_number_in_step, min_delay, max_delay, average_delay, delivery_rate, throughput, rate]
 
         return self.stat_df.loc[len(self.stat_df)-1]
     
@@ -291,7 +294,7 @@ class RanSlice:
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}[{self.N_UEs} UEs & {self.min_RB}:{self.RB_resolution}:{self.max_RB} eNodeBs]>"
     
-    def get_info(self, max_display_nodes:int = 3):
+    def get_info(self, max_display_nodes:int = 3) -> str:
         ue_location = self.get_ue_location()
         enb_location = self.get_enb_location()
         res = f"{self.__class__.__name__}:\n\n"
