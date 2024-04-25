@@ -1,7 +1,8 @@
 import pandas as pd
+import random
 import logging
 from ns import ns
-from .utils import OnOffAppConfig, SinkAppConfig, logging_helper
+from .utils import OnOffAppConfig, SinkAppConfig, logging_helper, list_to_abbr_str
 
 
 # -------------------- DataFrames for recording Tx and Rx events --------------------
@@ -286,12 +287,20 @@ class RanSlice:
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}[{self.N_UEs} UEs & {self.min_RB}:{self.RB_resolution}:{self.max_RB} eNodeBs]>"
     
-    def __str__(self) -> str:
+    def get_info(self, max_display_nodes:int = 3):
+        ue_location = self.get_ue_location()
+        enb_location = self.get_enb_location()
         res = f"{self.__class__.__name__}:\n\n"
+        res += f"Num of UEs: {self.N_UEs}\n"
         for i in range(self.N_UEs):
-            res += f"UE {self.ids['UEs'][i]}: {self.ue_ips[i]}\n"
+            if (i<max_display_nodes) or (i==self.N_UEs-1):
+                res += f"UE {self.ids['UEs'][i]}: {self.ue_ips[i]} in {ue_location[i]}\n"
+            if i == max_display_nodes:
+                res += f"......\n"
         res += "\n"
-        res += f"eNodeBs {self.ids['eNodeBs']}\n"
+        res += f"Num of candidate eNodeBs: {len(self.enb_divices)}\n"
+        res += f"Virtual eNodeB location: {enb_location}\n"
+        res += f"eNodeBs ids: {list_to_abbr_str(self.ids['eNodeBs'])}\n"
         res += f"RB from {self.min_RB} to {self.max_RB} with resolution {self.RB_resolution}\n"
         res += f"Current RB: {self.current_RB}\n"
         res += "\n"
@@ -299,6 +308,9 @@ class RanSlice:
         res += "\n"
         res += f"RemoteHost {remote_nodes.Get(0).GetId()}: {p2p_ip_interface.GetAddress(1)}\n"
         return res
+    
+    def __str__(self) -> str:
+        return self.get_info()
 
 
 class OnOffSlice(RanSlice):
