@@ -115,6 +115,7 @@ class RanSlice:
     def __init__(self, N_UEs:int, initial_RB:int, RB_resolution:int = 1, min_RB:int = 1, max_RB:int = 100, logger:None|logging.Logger = None, unlim_RB=True):
         self.N_UEs = N_UEs
         self.current_RB = initial_RB
+        self.changed_RB = False
         self.min_RB = min_RB
         self.max_RB = max_RB
         self.RB_resolution = RB_resolution
@@ -242,9 +243,15 @@ class RanSlice:
         return self.stat_df.loc[len(self.stat_df)-1]
     
     def handoverTo(self, N_RAB:int):
-        for i in range(self.N_UEs):
-            self.logger.info(f"UE {self.ids['UEs'][i]} handover to eNodeB with RB {N_RAB}")
-            lte_helper.HandoverRequest(ns.Seconds(0), self.ue_devices.Get(i), self.enb_divices[self.current_RB].Get(0).GetObject["LteEnbNetDevice"](), self.enb_divices[N_RAB].Get(0).GetObject["LteEnbNetDevice"]())
+        if N_RAB != self.current_RB:
+            for i in range(self.N_UEs):
+                self.logger.info(f"UE {self.ids['UEs'][i]} handover to eNodeB with RB {N_RAB}")
+                lte_helper.HandoverRequest(ns.Seconds(0), self.ue_devices.Get(i), self.enb_divices[self.current_RB].Get(0).GetObject["LteEnbNetDevice"](), self.enb_divices[N_RAB].Get(0).GetObject["LteEnbNetDevice"]())
+            self.current_RB = N_RAB
+            self.changed_RB = True
+        else:
+            self.logger.info(f"Retain in eNodeB with RB {N_RAB}")
+            self.changed_RB = False
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}[{self.N_UEs} UEs & {self.min_RB}:{self.RB_resolution}:{self.max_RB} eNodeBs]>"
