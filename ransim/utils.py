@@ -55,3 +55,18 @@ class OnOffAppConfig:
         self.on_time = ns.StringValue(on_time)
         self.off_time = ns.StringValue(off_time)
         self.port = port
+
+def list_to_abbr_str(lst, max_display=3):
+    if len(lst) <= max_display:
+        return str(lst)
+    else:
+        res = "["
+        for i in range(len(lst)):
+            if i == max_display:
+                res += "..., "
+            if i < max_display:
+                res += (str(lst[i]) + ", ")
+            if i == len(lst) - 1:
+                res += str(lst[i])
+        res += "]"
+        return res
