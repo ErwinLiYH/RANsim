@@ -19,8 +19,8 @@ class Station(gym.Env):
         self.warmup_times = warmup_times
         self.logger = logger
 
+        # Action space and observation space
         self.action_space = spaces.Box(low=0, high=1, shape=(self.N_slices,), dtype=float)
-        # TODO: observation space
         # self.observation_space = 
 
         # Set location of eNodeBs and UEs
@@ -58,7 +58,7 @@ class Station(gym.Env):
         pass
 
     def _get_info(self):
-        pass
+        return {}
 
     def reset(self):
         self.logger.info("Resetting......")
@@ -76,6 +76,12 @@ class Station(gym.Env):
         ns.Simulator.Stop(ns.Seconds(self.step_time))
         ns.Simulator.Run()
 
+        # Get observations
+        observations = self._get_obs()
+
+        # Get info
+        info = self._get_info()
+
         # Get rewards
         Slice.merge_records()
         rewards = []
@@ -83,4 +89,9 @@ class Station(gym.Env):
             rewards.append(i.reward(self.step_time))
         Slice.step_records()
         Slice.current_time += self.step_time
-        return rewards
+        reward = sum(rewards)
+        
+        # return [observation, reward, terminated, truncated, info] according to gym.Env v26
+        # reference: https://gymnasium.farama.org/api/env/#methods
+        # terminated and truncated reference: https://gymnasium.farama.org/tutorials/gymnasium_basics/handling_time_limits/
+        return observations, reward, False, False, info
