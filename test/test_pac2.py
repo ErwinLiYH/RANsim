@@ -1,4 +1,5 @@
 import ransim
+from ransim import FuncSlices
 from ransim import Slice
 from ransim import utils
 from ransim import Station
@@ -16,10 +17,14 @@ sink_config = utils.SinkAppConfig(0, 5)
 
 Slice.InitRemoteSinkApp(sink_config)
 
-testslice1 = Slice.OnOffSlice(2, 25, onoff_config1, sink_config, logger=log1, unlim_RB=False)
-testslice2 = Slice.OnOffSlice(5, 25, onoff_config2, sink_config, logger=log2, unlim_RB=False)
+testslice1 = FuncSlices.OnOffSlice(2, 25, onoff_config1, sink_config, logger=log1, unlim_RB=False)
+testslice2 = FuncSlices.OnOffSlice(5, 25, onoff_config2, sink_config, logger=log2, unlim_RB=False)
 
 station = Station.Station([testslice1, testslice2], logger=log3, warmup_times=10)
 
 station.step([50,25])
+station.step([50,25])
+station.step([50,25])
+station.step([25,50])
+station.step([25,50])
 station.step([25,50])

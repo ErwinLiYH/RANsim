@@ -7,7 +7,7 @@ from gymnasium import spaces
 
 
 class Station(gym.Env):
-    def __init__(self, slice_list:List[Slice.RanSlice], step_time=0.05, warmup_times=10, logger:None|logging.Logger = None, enb_distance=5000, ue_range=100):
+    def __init__(self, slice_list:List[Slice.BasicRanSlice], step_time=0.05, warmup_times=10, logger:None|logging.Logger = None, enb_distance=5000, ue_range=100):
         
         # Connect callback functions
         ns.Config.Connect("/NodeList/*/ApplicationList/*/$ns3::OnOffApplication/TxWithSeqTsSize", Slice.TxWithSeqTsSize_callback_cpp)
