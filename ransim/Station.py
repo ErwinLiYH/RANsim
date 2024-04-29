@@ -86,7 +86,7 @@ class Station(gym.Env):
         Slice.merge_records()
         rewards = []
         for i in self.Slice_list:
-            rewards.append(i.reward(self.step_time))
+            rewards.append(i.get_reward(self.step_time))
         Slice.step_records()
         Slice.current_time += self.step_time
         reward = sum(rewards)

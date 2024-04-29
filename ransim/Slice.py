@@ -2,7 +2,7 @@ import pandas as pd
 import random
 import logging
 from ns import ns
-from .utils import OnOffAppConfig, SinkAppConfig, logging_helper, list_to_abbr_str
+from .utils import SinkAppConfig, logging_helper, list_to_abbr_str
 
 
 # Current time
@@ -128,7 +128,7 @@ class BasicRanSlice:
             "eNodeBs": []
         }
         self.ue_ips = []
-        self.stat_df = pd.DataFrame(columns=["step", "nSend", "nRecv", "nRecvStep", "minDelay", "maxDelay", "avgDelay", "delivRate", "throughput", "rate"])
+        self.stat_df = pd.DataFrame(columns=["step", "nSend", "nRecv", "nRecvStep", "minDelay", "maxDelay", "avgDelay", "minRate", "maxRate", "avgRate", "delivRate", "throughput"])
         self.logger = logger
 
         # Create eNodeB nodes
@@ -195,56 +195,80 @@ class BasicRanSlice:
         """
         Analyze the permformance of the slice in this step.
         """
-        # Filter to analyze
-        sub_merged_df = merged_df[merged_df["src_ip"].isin(self.ue_ips)]
+        # Dataframe to store the performance per UE
+        res = pd.DataFrame(columns=["UEIP", "step", "nSend", "nRecv", "nRecvStep", "minDelay", "maxDelay", "avgDelay", "minRate", "maxRate", "avgRate", "delivRate", "throughput"])
 
-        # Get sending and receiving information
-        sent_number = len(sub_merged_df[sub_merged_df["step_tx"]==step])
-        recv_number_in_step = len(sub_merged_df[(sub_merged_df['_merge'] == 'both') & (sub_merged_df['step_tx'] == step)])
-        recv_number_total = len(sub_merged_df[sub_merged_df["_merge"] == 'both'])
-        receive_info = sub_merged_df[sub_merged_df['_merge'] == 'both']['step_tx'].value_counts()
-        # receive_info_str = ''
-        # for i in receive_info.index:
-        #     receive_info_str+=f"{i}:{receive_info[i]}|"
+        # Analyze per UE
+        for i in self.ue_ips:
+            # Filter to analyze
+            sub_merged_df = merged_df[merged_df["src_ip"]==i]
 
-        # Delivery rate : number of received packets sent in this step / number of sent packets
-        try:
-            delivery_rate = recv_number_in_step/sent_number
-        except ZeroDivisionError:
-            delivery_rate = 1    # sending number could be zero
+            # Get sending and receiving information
+            sent_number = len(sub_merged_df[sub_merged_df["step_tx"]==step])
+            recv_number_in_step = len(sub_merged_df[(sub_merged_df['_merge'] == 'both') & (sub_merged_df['step_tx'] == step)])
+            recv_number_total = len(sub_merged_df[sub_merged_df["_merge"] == 'both'])
+            receive_info = sub_merged_df[sub_merged_df['_merge'] == 'both']['step_tx'].value_counts()
+            # receive_info_str = ''
+            # for i in receive_info.index:
+            #     receive_info_str+=f"{i}:{receive_info[i]}|"
 
-        # Delay: receiving time of packets received in this step - sending time
-        temp = sub_merged_df[sub_merged_df['_merge'] == 'both']["time_rx"]-sub_merged_df[sub_merged_df['_merge'] == 'both']["time_tx"]
-        average_delay = temp.mean()
-        max_delay = temp.max()
-        min_delay = temp.min()
+            # Delivery rate : number of received packets sent in this step / number of sent packets
+            try:
+                delivery_rate = recv_number_in_step/sent_number
+            except ZeroDivisionError:
+                delivery_rate = 1    # sending number could be zero
 
-        # Rate (Mb/s): avg(packet size / (receiving time - sending time))
-        rate = (sub_merged_df[sub_merged_df['_merge'] == 'both']["size_rx"] / temp).mean()
-        rate = rate*8/1024/1024
+            # Delay: receiving time of packets received in this step - sending time
+            delays = sub_merged_df[sub_merged_df['_merge'] == 'both']["time_rx"]-sub_merged_df[sub_merged_df['_merge'] == 'both']["time_tx"]
+            average_delay = delays.mean()
+            max_delay = delays.max()
+            min_delay = delays.min()
 
-        # Throughput (Mb/s): total received size / step time
-        throughput = sub_merged_df["size_rx"].sum() / step_time
-        throughput = throughput*8/1024/1024
+            # Rate (Mb/s): avg(packet size / (receiving time - sending time))
+            rates = sub_merged_df[sub_merged_df['_merge'] == 'both']["size_rx"] / delays
+            average_rate = rates.mean()*8/1024/1024
+            max_rate = rates.max()*8/1024/1024
+            min_rate = rates.min()*8/1024/1024
+
+            # Throughput (Mb/s): total received size / step time
+            throughput = sub_merged_df["size_rx"].sum() / step_time
+            throughput = throughput*8/1024/1024
+
+            res.loc[len(res)] = [i, step, sent_number, recv_number_total, recv_number_in_step, min_delay, max_delay, average_delay, min_rate, max_rate, average_rate, delivery_rate, throughput]
 
         # Log report
         if self.logger:
-            self.logger.info(f"-------------------- step {step} report <{current_time}s - {current_time+step_time}s> --------------------")
+            # Calculate performance per slice
+            sub_merged_df = merged_df[merged_df["src_ip"].isin(self.ue_ips)]
+            sent_number = len(sub_merged_df[sub_merged_df["step_tx"]==step])
+            recv_number_total = len(sub_merged_df[sub_merged_df["_merge"] == 'both'])
+            receive_info = sub_merged_df[sub_merged_df['_merge'] == 'both']['step_tx'].value_counts()
+
+            try:
+                delivery_rate = recv_number_in_step/sent_number
+            except ZeroDivisionError:
+                delivery_rate = 1    # sending number could be zero
+
+            delays = sub_merged_df[sub_merged_df['_merge'] == 'both']["time_rx"]-sub_merged_df[sub_merged_df['_merge'] == 'both']["time_tx"]
+            average_delay = delays.mean()
+
+            rates = sub_merged_df[sub_merged_df['_merge'] == 'both']["size_rx"] / delays
+            average_rate = rates.mean()*8/1024/1024
+
+            throughput = sub_merged_df["size_rx"].sum() / step_time
+            throughput = throughput*8/1024/1024
+
+            self.logger.info(f"-------------------- step {step} report <{current_time:.3f}s - {current_time+step_time:.3f}s> --------------------")
             self.logger.info(f"Sent {sent_number} packet in step {step}.")
             self.logger.info(f"Received {recv_number_total} packet in total.")
             for i in receive_info.index:
                 self.logger.info(f"Received {receive_info[i]} packet from step {i}.")
-            self.logger.info(f"Min delay: {min_delay} s")
-            self.logger.info(f"Max delay: {max_delay} s")
             self.logger.info(f"Avg delay: {average_delay} s")
             self.logger.info(f"Delivery rate: {delivery_rate}")
             self.logger.info(f"Throughput: {throughput} Mb/s")
-            self.logger.info(f"Rate: {rate} Mb/s")
+            self.logger.info(f"Avg Rate: {average_rate} Mb/s")
 
-        # record report
-        self.stat_df.loc[len(self.stat_df)] = [step, sent_number, recv_number_total, recv_number_in_step, min_delay, max_delay, average_delay, delivery_rate, throughput, rate]
-
-        return self.stat_df.loc[len(self.stat_df)-1]
+        return res
     
     def handoverTo(self, N_RAB:int):
         self.logger.info(f"-------------------- step {step} handover --------------------")
