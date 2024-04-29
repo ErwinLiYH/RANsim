@@ -13,18 +13,18 @@ class OnOffSlice(Slice.BasicRanSlice):
 
         # Install onoff client to UEs
         for i in range(self.N_UEs):
-            tcp_client = ns.OnOffHelper(onoff_config.socket_type, ns.InetSocketAddress(Slice.p2p_ip_interface.GetAddress(1), sink_config.port).ConvertTo())
-            tcp_client.SetAttribute("OnTime", onoff_config.on_time)
-            tcp_client.SetAttribute("OffTime", onoff_config.off_time)
-            tcp_client.SetAttribute("DataRate", onoff_config.data_rate)
-            tcp_client.SetAttribute("PacketSize", onoff_config.packet_size)
-            tcp_client.SetAttribute("EnableSeqTsSizeHeader", ns.BooleanValue(1))
+            client = ns.OnOffHelper(onoff_config.socket_type, ns.InetSocketAddress(Slice.p2p_ip_interface.GetAddress(1), sink_config.port).ConvertTo())
+            client.SetAttribute("OnTime", onoff_config.on_time)
+            client.SetAttribute("OffTime", onoff_config.off_time)
+            client.SetAttribute("DataRate", onoff_config.data_rate)
+            client.SetAttribute("PacketSize", onoff_config.packet_size)
+            client.SetAttribute("EnableSeqTsSizeHeader", ns.BooleanValue(1))
             # if not set Local attr, the source ip when using UDP will be 0.0.0.0
             ue_adress = ns.InetSocketAddress(self.ue_ip_interface.GetAddress(i), onoff_config.port)
-            tcp_client.SetAttribute("Local", ns.AddressValue(ue_adress.ConvertTo()))
-            self.tcp_client_apps = tcp_client.Install(self.ue_nodes.Get(i))
-            self.tcp_client_apps.Start(onoff_config.start_time)
-            self.tcp_client_apps.Stop(onoff_config.stop_time)
+            client.SetAttribute("Local", ns.AddressValue(ue_adress.ConvertTo()))
+            self.client_apps = client.Install(self.ue_nodes.Get(i))
+            self.client_apps.Start(onoff_config.start_time)
+            self.client_apps.Stop(onoff_config.stop_time)
 
     def stat_report(self, step_time):
         """
