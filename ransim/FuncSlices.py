@@ -53,8 +53,20 @@ class OnOffSlice(Slice.BasicRanSlice):
         return stat["throughput"]
     
 class EmbbSlice(Slice.BasicRanSlice):
-    def __init__(self, N_UEs: int, initial_RB: int, onoff_configs: List[OnOffAppConfig], sink_config: SinkAppConfig, RB_resolution: int = 1, min_RB: int = 1, max_RB: int = 100, logger: None | logging.Logger = None, unlim_RB=True):
+    def __init__(self, N_UEs: int, N_GBR_UE: int, initial_RB: int, onoff_configs: List[OnOffAppConfig], sink_config: SinkAppConfig, RB_resolution: int = 1, min_RB: int = 1, max_RB: int = 100, logger: None | logging.Logger = None, unlim_RB=True):
         super().__init__(N_UEs, initial_RB, RB_resolution, min_RB, max_RB, logger, unlim_RB)
+
+        assert N_GBR_UE <= N_UEs, "GBR UE number should be less than total UE number."
+
+        # Activate GBR/NGBR bearer for GBR UEs
+        gbr_bearer = ns.EpsBearer(1)
+        ngbr_bareer = ns.EpsBearer(7)
+        tft = ns.Create["EpcTft"]()
+        for i in range(self.N_UEs):
+            if i < N_GBR_UE:
+                Slice.lte_helper.ActivateDedicatedEpsBearer(self.ue_devices.Get(i), gbr_bearer, tft)
+            else:
+                Slice.lte_helper.ActivateDedicatedEpsBearer(self.ue_devices.Get(i), ngbr_bareer, tft)
 
         # Initialize onoff client on Remotehost to UE
         for i in range(self.N_UEs):
