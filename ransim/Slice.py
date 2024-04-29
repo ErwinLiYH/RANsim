@@ -104,9 +104,9 @@ remote_routing.AddNetworkRouteTo(ns.Ipv4Address("7.0.0.0"), ns.Ipv4Mask("255.0.0
 
 def InitRemoteSinkApp(sink_config:SinkAppConfig):
     # Install Sink app to remote host
-    tcp_sink = ns.PacketSinkHelper(sink_config.socket_type, ns.InetSocketAddress(ns.Ipv4Address.GetAny(), sink_config.port).ConvertTo())
-    tcp_sink.SetAttribute("EnableSeqTsSizeHeader", ns.BooleanValue(1))
-    sink_apps = tcp_sink.Install(remote_nodes.Get(0))
+    sink = ns.PacketSinkHelper(sink_config.socket_type, ns.InetSocketAddress(ns.Ipv4Address.GetAny(), sink_config.port).ConvertTo())
+    sink.SetAttribute("EnableSeqTsSizeHeader", ns.BooleanValue(1))
+    sink_apps = sink.Install(remote_nodes.Get(0))
     sink_apps.Start(sink_config.start_time)
     sink_apps.Stop(sink_config.stop_time)
 
