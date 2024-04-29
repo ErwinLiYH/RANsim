@@ -2,7 +2,7 @@ import pandas as pd
 import random
 import logging
 from ns import ns
-from .utils import SinkAppConfig, logging_helper, list_to_abbr_str
+from .utils import SinkAppConfig, OnOffAppConfig, logging_helper, list_to_abbr_str
 
 
 # Current time
@@ -12,8 +12,8 @@ current_time = 0
 
 step=0
 
-tx_record_df = pd.DataFrame(columns=["uid", "seq_num", "size", "time", "step", "src_ip", "src_port", "dest"])
-rx_record_df = pd.DataFrame(columns=["uid", "seq_num", "size", "time", "step", "src_ip", "src_port", "dest"])
+tx_record_df = pd.DataFrame(columns=["uid", "seq_num", "size", "time", "step", "src_ip", "src_port", "dest_ip", "dest_port"])
+rx_record_df = pd.DataFrame(columns=["uid", "seq_num", "size", "time", "step", "src_ip", "src_port", "dest_ip", "dest_port"])
 
 merged_df = None
 
@@ -25,14 +25,14 @@ def TxWithSeqTsSize_callback(contex, packet, address_src, address_dest, SeqTsSiz
     address_src = ns.InetSocketAddress.ConvertFrom(address_src)
     address_dest = ns.InetSocketAddress.ConvertFrom(address_dest)
     CALLBACK_LOGGER.debug(f"At {ns.Simulator.Now().GetSeconds():.5f}s ,{contex}, sent {packet.__deref__().GetSize()} bytes data")
-    tx_record_df.loc[len(tx_record_df)] = [packet.__deref__().GetUid(), SeqTsSizeHeader.GetSeq(), SeqTsSizeHeader.GetSize(), ns.Simulator.Now().GetSeconds(), step, str(address_src.GetIpv4()), str(address_src.GetPort()), f"{address_dest.GetIpv4()}:{address_dest.GetPort()}"]
+    tx_record_df.loc[len(tx_record_df)] = [packet.__deref__().GetUid(), SeqTsSizeHeader.GetSeq(), SeqTsSizeHeader.GetSize(), ns.Simulator.Now().GetSeconds(), step, str(address_src.GetIpv4()), str(address_src.GetPort()), str(address_dest.GetIpv4()), str(address_dest.GetPort())]
 
 
 def RxWithSeqTsSize_callback(contex, packet, address_src, address_dest, SeqTsSizeHeader):
     address_src = ns.InetSocketAddress.ConvertFrom(address_src)
     address_dest = ns.InetSocketAddress.ConvertFrom(address_dest)
     CALLBACK_LOGGER.debug(f"At {ns.Simulator.Now().GetSeconds():.5f}s ,{contex}, received {packet.__deref__().GetSize()} bytes data")
-    rx_record_df.loc[len(rx_record_df)] = [packet.__deref__().GetUid(), SeqTsSizeHeader.GetSeq(), SeqTsSizeHeader.GetSize(), ns.Simulator.Now().GetSeconds(), step, str(address_src.GetIpv4()), str(address_src.GetPort()), f"{address_dest.GetIpv4()}:{address_dest.GetPort()}"]
+    rx_record_df.loc[len(rx_record_df)] = [packet.__deref__().GetUid(), SeqTsSizeHeader.GetSeq(), SeqTsSizeHeader.GetSize(), ns.Simulator.Now().GetSeconds(), step, str(address_src.GetIpv4()), str(address_src.GetPort()), str(address_dest.GetIpv4()), str(address_dest.GetPort())]
 
 TxWithSeqTsSize_callback_cpp = ns.cppyy.gbl.make_SeqTsSizeCallback_with_context(TxWithSeqTsSize_callback)
 RxWithSeqTsSize_callback_cpp = ns.cppyy.gbl.make_SeqTsSizeCallback_with_context(RxWithSeqTsSize_callback)
@@ -41,7 +41,7 @@ RxWithSeqTsSize_callback_cpp = ns.cppyy.gbl.make_SeqTsSizeCallback_with_context(
 
 def merge_records():
     global merged_df
-    merged_df = pd.merge(tx_record_df, rx_record_df, on=['seq_num', 'src_ip', 'src_port'], suffixes=('_tx', '_rx'), how='left', indicator=True)
+    merged_df = pd.merge(tx_record_df, rx_record_df, on=['seq_num', 'src_ip', 'src_port', 'dest_ip', 'dest_port'], suffixes=('_tx', '_rx'), how='left', indicator=True)
 
 def step_records():
     # Clean all receiving records
@@ -109,6 +109,21 @@ def InitRemoteSinkApp(sink_config:SinkAppConfig):
     sink_apps = sink.Install(remote_nodes.Get(0))
     sink_apps.Start(sink_config.start_time)
     sink_apps.Stop(sink_config.stop_time)
+
+def InitRemoteOnOffApp(sink_config:SinkAppConfig, onoff_config: OnOffAppConfig, dest_ip):
+    # Install OnOff app to remote host
+    client = ns.OnOffHelper(onoff_config.socket_type, ns.InetSocketAddress(dest_ip, sink_config.port).ConvertTo())
+    client.SetAttribute("OnTime", onoff_config.on_time)
+    client.SetAttribute("OffTime", onoff_config.off_time)
+    client.SetAttribute("DataRate", onoff_config.data_rate)
+    client.SetAttribute("PacketSize", onoff_config.packet_size)
+    client.SetAttribute("EnableSeqTsSizeHeader", ns.BooleanValue(1))
+    # if not set Local attr, the source ip when using UDP will be 0.0.0.0
+    local_adress = ns.InetSocketAddress(p2p_ip_interface.GetAddress(1), onoff_config.port)
+    client.SetAttribute("Local", ns.AddressValue(local_adress.ConvertTo()))
+    client_apps = client.Install(remote_nodes.Get(0))
+    client_apps.Start(onoff_config.start_time)
+    client_apps.Stop(onoff_config.stop_time)
 
 # -------------------- Basic Slice class --------------------
 
@@ -191,7 +206,7 @@ class BasicRanSlice:
         # Attach UEs to initial eNodeB
         lte_helper.Attach(self.ue_devices, self.enb_divices[initial_RB].Get(0))
 
-    def stat_report(self, step_time) -> pd.Series:
+    def stat_report(self, step_time, rxtx = "tx") -> pd.Series:
         """
         Analyze the permformance of the slice in this step.
         """
@@ -201,7 +216,12 @@ class BasicRanSlice:
         # Analyze per UE
         for i in self.ue_ips:
             # Filter to analyze
-            sub_merged_df = merged_df[merged_df["src_ip"]==i]
+            if rxtx == "tx":
+                sub_merged_df = merged_df[merged_df["src_ip"]==i]
+            elif rxtx == "rx":
+                sub_merged_df = merged_df[merged_df["dest_ip"]==i]
+            else:
+                raise ValueError("'rxtx' should be 'tx' or 'rx'")
 
             # Get sending and receiving information
             sent_number = len(sub_merged_df[sub_merged_df["step_tx"]==step])
@@ -239,7 +259,12 @@ class BasicRanSlice:
         # Log report
         if self.logger:
             # Calculate performance per slice
-            sub_merged_df = merged_df[merged_df["src_ip"].isin(self.ue_ips)]
+            if rxtx == "tx":
+                sub_merged_df = merged_df[merged_df["src_ip"].isin(self.ue_ips)]
+            elif rxtx == "rx":
+                sub_merged_df = merged_df[merged_df["dest_ip"].isin(self.ue_ips)]
+            else:
+                raise ValueError("'rxtx' should be 'tx' or 'rx'")
             sent_number = len(sub_merged_df[sub_merged_df["step_tx"]==step])
             recv_number_total = len(sub_merged_df[sub_merged_df["_merge"] == 'both'])
             receive_info = sub_merged_df[sub_merged_df['_merge'] == 'both']['step_tx'].value_counts()
