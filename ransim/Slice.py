@@ -211,7 +211,7 @@ class BasicRanSlice:
         Analyze the permformance of the slice in this step.
         """
         # Dataframe to store the performance per UE
-        res = pd.DataFrame(columns=["UEIP", "step", "nSend", "nRecv", "nRecvStep", "minDelay", "maxDelay", "avgDelay", "minRate", "maxRate", "avgRate", "delivRate", "throughput"])
+        res = pd.DataFrame(columns=["UEIP", "step", "nSend", "nRecv", "nRecvStep", "minDelay", "maxDelay", "avgDelay", "minRate", "maxRate", "avgRate", "delivRate", "throughput", "rx_throughput"])
 
         # Analyze per UE
         for i in self.ue_ips:
@@ -227,10 +227,6 @@ class BasicRanSlice:
             sent_number = len(sub_merged_df[sub_merged_df["step_tx"]==step])
             recv_number_in_step = len(sub_merged_df[(sub_merged_df['_merge'] == 'both') & (sub_merged_df['step_tx'] == step)])
             recv_number_total = len(sub_merged_df[sub_merged_df["_merge"] == 'both'])
-            receive_info = sub_merged_df[sub_merged_df['_merge'] == 'both']['step_tx'].value_counts()
-            # receive_info_str = ''
-            # for i in receive_info.index:
-            #     receive_info_str+=f"{i}:{receive_info[i]}|"
 
             # Delivery rate : number of received packets sent in this step / number of sent packets
             try:
@@ -253,8 +249,12 @@ class BasicRanSlice:
             # Throughput (Mb/s): total received size / step time
             throughput = sub_merged_df["size_rx"].sum() / step_time
             throughput = throughput*8/1024/1024
+            
+            # Tx throughput (Mb/s): total sent size / step time
+            tx_throughput = sub_merged_df[sub_merged_df["step_tx"]==step]["size_tx"].sum() / step_time
+            tx_throughput = tx_throughput*8/1024/1024
 
-            res.loc[len(res)] = [i, step, sent_number, recv_number_total, recv_number_in_step, min_delay, max_delay, average_delay, min_rate, max_rate, average_rate, delivery_rate, throughput]
+            res.loc[len(res)] = [i, step, sent_number, recv_number_total, recv_number_in_step, min_delay, max_delay, average_delay, min_rate, max_rate, average_rate, delivery_rate, throughput, tx_throughput]
 
         # Log report
         if self.logger:
@@ -283,6 +283,9 @@ class BasicRanSlice:
             throughput = sub_merged_df["size_rx"].sum() / step_time
             throughput = throughput*8/1024/1024
 
+            tx_throughput = sub_merged_df[sub_merged_df["step_tx"]==step]["size_tx"].sum() / step_time
+            tx_throughput = tx_throughput*8/1024/1024
+
             self.logger.info(f"-------------------- step {step} report <{current_time:.3f}s - {current_time+step_time:.3f}s> --------------------")
             self.logger.info(f"Sent {sent_number} packet in step {step}.")
             self.logger.info(f"Received {recv_number_total} packet in total.")
@@ -291,6 +294,7 @@ class BasicRanSlice:
             self.logger.info(f"Avg delay: {average_delay} s")
             self.logger.info(f"Delivery rate: {delivery_rate}")
             self.logger.info(f"Throughput: {throughput} Mb/s")
+            self.logger.info(f"Tx Throughput: {tx_throughput} Mb/s")
             self.logger.info(f"Avg Rate: {average_rate} Mb/s")
 
         return res
