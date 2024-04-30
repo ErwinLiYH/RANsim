@@ -53,20 +53,24 @@ class OnOffSlice(Slice.BasicRanSlice):
         return stat["throughput"]
     
 class EmbbSlice(Slice.BasicRanSlice):
-    def __init__(self, N_UEs: int, N_GBR_UE: int, initial_RB: int, onoff_configs: List[OnOffAppConfig], sink_config: SinkAppConfig, RB_resolution: int = 1, min_RB: int = 1, max_RB: int = 100, logger: None | logging.Logger = None, unlim_RB=True):
+    def __init__(self, N_UEs: int, CQI_info: Dict[int, int], initial_RB: int, onoff_configs: List[OnOffAppConfig], sink_config: SinkAppConfig, RB_resolution: int = 1, min_RB: int = 1, max_RB: int = 100, logger: None | logging.Logger = None, unlim_RB=True):
         super().__init__(N_UEs, initial_RB, RB_resolution, min_RB, max_RB, logger, unlim_RB)
 
-        assert N_GBR_UE <= N_UEs, "GBR UE number should be less than total UE number."
+        total_n_cqi = 0
+        for i in CQI_info.values():
+            total_n_cqi += i
+        assert total_n_cqi == N_UEs, "The sum of CQI_info should be equal to N_UEs"
 
         # Activate GBR/NGBR bearer for GBR UEs
-        gbr_bearer = ns.EpsBearer(1)
-        ngbr_bareer = ns.EpsBearer(7)
+        self.cqi_ueip = {k:[] for k in CQI_info.keys()}
+        CQI_info_list = (k for k, v in CQI_info.items() for _ in range(v))
         tft = ns.Create["EpcTft"]()
-        for i in range(self.N_UEs):
-            if i < N_GBR_UE:
-                Slice.lte_helper.ActivateDedicatedEpsBearer(self.ue_devices.Get(i), gbr_bearer, tft)
-            else:
-                Slice.lte_helper.ActivateDedicatedEpsBearer(self.ue_devices.Get(i), ngbr_bareer, tft)
+        for i, q in zip(range(self.N_UEs), CQI_info_list):
+            assert q in range(1, 9), "CQI should be in range 1-9"
+            assert isinstance(q, int), "CQI should be integer"
+            bearer = ns.EpsBearer(q)
+            Slice.lte_helper.ActivateDedicatedEpsBearer(self.ue_devices.Get(i), bearer, tft)
+            self.cqi_ueip[q].append(self.ue_ips[i])
 
         # Initialize onoff client on Remotehost to UE
         for i in range(self.N_UEs):
