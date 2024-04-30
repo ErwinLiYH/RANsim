@@ -7,7 +7,7 @@ from gymnasium import spaces
 
 
 class Station(gym.Env):
-    def __init__(self, slice_list:List[Slice.BasicRanSlice], step_time=0.05, warmup_times=10, logger:None|logging.Logger = None, enb_distance=5000, ue_range=100):
+    def __init__(self, slice_list:List[Slice.BasicRanSlice], max_time, step_time=0.05, warmup_times=10, logger:None|logging.Logger = None, enb_distance=5000, ue_range=100):
         
         # Connect callback functions
         ns.Config.Connect("/NodeList/*/ApplicationList/*/$ns3::OnOffApplication/TxWithSeqTsSize", Slice.TxWithSeqTsSize_callback_cpp)
@@ -18,6 +18,9 @@ class Station(gym.Env):
         self.step_time = step_time
         self.warmup_times = warmup_times
         self.logger = logger
+
+        # time limit
+        self.max_time = max_time
 
         # Action space and observation space
         self.action_space = spaces.Box(low=0, high=1, shape=(self.N_slices,), dtype=float)
@@ -79,6 +82,11 @@ class Station(gym.Env):
         # Get observations
         observations = self._get_obs()
 
+        # Get terminated
+        terminated = False
+        if Slice.current_time >= self.max_time:
+            terminated = True
+
         # Get info
         info = self._get_info()
 
@@ -94,4 +102,4 @@ class Station(gym.Env):
         # return [observation, reward, terminated, truncated, info] according to gym.Env v26
         # reference: https://gymnasium.farama.org/api/env/#methods
         # terminated and truncated reference: https://gymnasium.farama.org/tutorials/gymnasium_basics/handling_time_limits/
-        return observations, reward, False, False, info
+        return observations, reward, terminated, False, info
