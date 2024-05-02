@@ -1,8 +1,9 @@
 from . import Slice
-from typing import List
+from typing import List, Dict
 from .utils import OnOffAppConfig, SinkAppConfig
 import logging
 from ns import ns
+import numpy as np
 
 
 class OnOffSlice(Slice.BasicRanSlice):
@@ -53,8 +54,13 @@ class OnOffSlice(Slice.BasicRanSlice):
         return stat["throughput"]
     
 class EmbbSlice(Slice.BasicRanSlice):
-    def __init__(self, N_UEs: int, CQI_info: Dict[int, int], initial_RB: int, onoff_configs: List[OnOffAppConfig], sink_config: SinkAppConfig, RB_resolution: int = 1, min_RB: int = 1, max_RB: int = 100, logger: None | logging.Logger = None, unlim_RB=True):
+    def __init__(self, N_UEs: int, CQI_info: Dict[int, int], SLAs: Dict[int, Dict[str, float]], initial_RB: int, onoff_configs: List[OnOffAppConfig], sink_config: SinkAppConfig, RB_resolution: int = 1, min_RB: int = 1, max_RB: int = 100, logger: None | logging.Logger = None, unlim_RB=True):
         super().__init__(N_UEs, initial_RB, RB_resolution, min_RB, max_RB, logger, unlim_RB)
+
+        self.SLAs = SLAs
+        self.SLA_violation_list = []
+
+        self.SE_list = []
 
         total_n_cqi = 0
         for i in CQI_info.values():
@@ -62,7 +68,7 @@ class EmbbSlice(Slice.BasicRanSlice):
         assert total_n_cqi == N_UEs, "The sum of CQI_info should be equal to N_UEs"
 
         # Activate GBR/NGBR bearer for GBR UEs
-        self.cqi_ueip = {k:[] for k in CQI_info.keys()}
+        self.ueip_cqi = {}
         CQI_info_list = (k for k, v in CQI_info.items() for _ in range(v))
         tft = ns.Create["EpcTft"]()
         for i, q in zip(range(self.N_UEs), CQI_info_list):
@@ -70,7 +76,7 @@ class EmbbSlice(Slice.BasicRanSlice):
             assert isinstance(q, int), "CQI should be integer"
             bearer = ns.EpsBearer(q)
             Slice.lte_helper.ActivateDedicatedEpsBearer(self.ue_devices.Get(i), bearer, tft)
-            self.cqi_ueip[q].append(self.ue_ips[i])
+            self.ueip_cqi[self.ue_ips[i]] = q
 
         # Initialize onoff client on Remotehost to UE
         for i in range(self.N_UEs):
@@ -86,13 +92,49 @@ class EmbbSlice(Slice.BasicRanSlice):
 
     def stat_report(self, step_time):
         stat = super().stat_report(step_time, "rx")
-        avg_data = stat.iloc[:,1:].mean()
-        self.stat_df.loc[len(self.stat_df)] = avg_data
-        return avg_data
+        # Default stat format:
+        # ["UEIP", "step", "nSend", "nRecv", "nRecvStep", "minDelay", "maxDelay", "avgDelay", "minRate", "maxRate", "avgRate", "delivRate", "throughput"]
+        stat = stat[["UEIP", "maxDelay", "throughput", "tx_throughput", "pacSizeSum", "nRecv"]]
+        stat["CQI"] = stat["UEIP"].map(self.ueip_cqi)
+        total_throughput = stat.groupby("CQI")["throughput"].sum()
+        total_tx_throughput = stat.groupby("CQI")["tx_throughput"].sum()
+        max_delay = stat.groupby("CQI")["maxDelay"].max()
+        total_n_recv = stat.groupby("CQI")["nRecv"].sum()
+        total_pac_size = stat.groupby("CQI")["pacSizeSum"].sum()
+        self.stat = (total_throughput, total_tx_throughput, max_delay, total_n_recv, total_pac_size)
 
-    def get_reward(self, step_time):
-        stat = self.stat_report(step_time)
-        return stat["throughput"]
+    def get_reward(self):
+        # Calculate SLA violation
+        SLA_violation = 0
+        throughput_violation_rate = 0
+        delay_violation_rate = 0
+        for cqi, sla in self.SLAs.items():
+            throughput_violation_rate += (self.stat[0][cqi] - sla["throughput"]) / sla["throughput"]
+            delay_violation_rate += (sla["delay"] - self.stat[2][cqi]) / sla["delay"]
+            if self.stat[0][cqi] < sla["throughput"]:
+                if self.stat[1][cqi] >= sla["throughput"]:
+                    SLA_violation = 1
+            if self.stat[2][cqi] > sla["delay"]:
+                SLA_violation = 1
+        self.SLA_violation_list.append((SLA_violation, delay_violation_rate, throughput_violation_rate))
+
+        # Calculate SE (spectral efficiency)
+        SE = self.stat[0].sum()*1024*1024 / (180000 * self.current_RB) # bps/Hz
+        self.SE_list.append(SE)
+
+        # Bandwidth changing panalty
+        # P = 1 if self.changed_RB else 0
+
+        # Calculate reward
+        # reward = 1 * SE - 1 * SLA_violation # - 1 * P
+        reward = SE + delay_violation_rate + throughput_violation_rate
+
+        return reward
+    
+    def get_observation(self):
+        n_recv = self.stat[3].sum()
+        avg_packet_size = self.stat[4].sum() / n_recv
+        return np.array([self.current_RB, self.last_RB, n_recv, avg_packet_size])
 
 class MmtcSlice(Slice.BasicRanSlice):
     def __init__(self, N_UEs: int, initial_RB: int, onoff_config: OnOffAppConfig, sink_config: SinkAppConfig, RB_resolution: int = 1, min_RB: int = 1, max_RB: int = 100, logger: None | logging.Logger = None, unlim_RB=True):
