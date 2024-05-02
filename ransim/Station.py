@@ -4,6 +4,7 @@ from . import Slice
 import logging
 import gymnasium as gym
 from gymnasium import spaces
+import numpy as np
 
 
 class Station(gym.Env):
@@ -57,9 +58,6 @@ class Station(gym.Env):
         Slice.current_time += self.step_time*self.warmup_times
         self.logger.info("Warmup finished.")
 
-    def _get_obs(self):
-        pass
-
     def _get_info(self):
         return {}
 
@@ -90,14 +88,18 @@ class Station(gym.Env):
         # Get info
         info = self._get_info()
 
-        # Get rewards
+        # Get rewards and local observations
         Slice.merge_records()
         rewards = []
+        l_obs = []
         for i in self.Slice_list:
-            rewards.append(i.get_reward(self.step_time))
+            i.stat_report(self.step_time)
+            rewards.append(i.get_reward())
+            l_obs.append(i.get_observation())
         Slice.step_records()
         Slice.current_time += self.step_time
         reward = sum(rewards)
+        l_obs = np.stack(l_obs)
         
         # return [observation, reward, terminated, truncated, info] according to gym.Env v26
         # reference: https://gymnasium.farama.org/api/env/#methods
