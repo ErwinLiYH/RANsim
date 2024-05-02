@@ -211,7 +211,7 @@ class BasicRanSlice:
         Analyze the permformance of the slice in this step.
         """
         # Dataframe to store the performance per UE
-        res = pd.DataFrame(columns=["UEIP", "step", "nSend", "nRecv", "nRecvStep", "minDelay", "maxDelay", "avgDelay", "minRate", "maxRate", "avgRate", "delivRate", "throughput", "rx_throughput"])
+        res = pd.DataFrame(columns=["UEIP", "step", "nSend", "nRecv", "nRecvStep", "minDelay", "maxDelay", "avgDelay", "minRate", "maxRate", "avgRate", "delivRate", "throughput", "tx_throughput"])
 
         # Analyze per UE
         for i in self.ue_ips:
