@@ -212,7 +212,7 @@ class BasicRanSlice:
         Analyze the permformance of the slice in this step.
         """
         # Dataframe to store the performance per UE
-        res = pd.DataFrame(columns=["UEIP", "step", "nSend", "nRecv", "nRecvStep", "minDelay", "maxDelay", "avgDelay", "minRate", "maxRate", "avgRate", "delivRate", "throughput", "tx_throughput"])
+        res = pd.DataFrame(columns=["UEIP", "step", "nSend", "nRecv", "nRecvStep", "minDelay", "maxDelay", "avgDelay", "minRate", "maxRate", "avgRate", "delivRate", "throughput", "tx_throughput", "pacSizeSum"])
 
         # Analyze per UE
         for i in self.ue_ips:
@@ -255,7 +255,10 @@ class BasicRanSlice:
             tx_throughput = sub_merged_df[sub_merged_df["step_tx"]==step]["size_tx"].sum() / step_time
             tx_throughput = tx_throughput*8/1024/1024
 
-            res.loc[len(res)] = [i, step, sent_number, recv_number_total, recv_number_in_step, min_delay, max_delay, average_delay, min_rate, max_rate, average_rate, delivery_rate, throughput, tx_throughput]
+            # Average packet size
+            pac_size_sum = sub_merged_df[sub_merged_df['_merge'] == 'both']["size_rx"].sum()
+
+            res.loc[len(res)] = [i, step, sent_number, recv_number_total, recv_number_in_step, min_delay, max_delay, average_delay, min_rate, max_rate, average_rate, delivery_rate, throughput, tx_throughput, pac_size_sum]
 
         # Log report
         if self.logger:
