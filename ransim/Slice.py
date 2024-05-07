@@ -131,7 +131,7 @@ class BasicRanSlice:
     """
     RanSlice is the basic class for creating a slice in RAN simulation. It sets up all the UEs' and eNodeBs' nodes and devices.
     """
-    def __init__(self, N_UEs:int, initial_RB:int, RB_resolution:int = 1, min_RB:int = 1, max_RB:int = 100, logger:None|logging.Logger = None, unlim_RB=True):
+    def __init__(self, N_UEs:int, initial_RB:int, RB_resolution:int = 1, min_RB:int = 6, max_RB:int = 100, logger:None|logging.Logger = None, unlim_RB=True):
         self.N_UEs = N_UEs
         self.last_RB = initial_RB
         self.current_RB = initial_RB

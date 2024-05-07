@@ -10,7 +10,7 @@ class OnOffSlice(Slice.BasicRanSlice):
     """
     An example for functional slice. When creating a OnOffSlice, it will install a OnOff client for each UE, and do all action in BasicRanSlice.
     """
-    def __init__(self, N_UEs:int, initial_RB:int, onoff_config:OnOffAppConfig, sink_config:SinkAppConfig, RB_resolution: int = 1, min_RB: int = 1, max_RB: int = 100, logger:None|logging.Logger = None, unlim_RB=True):
+    def __init__(self, N_UEs:int, initial_RB:int, onoff_config:OnOffAppConfig, sink_config:SinkAppConfig, RB_resolution: int = 1, min_RB: int = 6, max_RB: int = 100, logger:None|logging.Logger = None, unlim_RB=True):
         super().__init__(N_UEs, initial_RB, RB_resolution, min_RB, max_RB, logger, unlim_RB)
 
         # Install onoff client to UEs
@@ -54,7 +54,7 @@ class OnOffSlice(Slice.BasicRanSlice):
         return stat["throughput"]
     
 class EmbbSlice(Slice.BasicRanSlice):
-    def __init__(self, N_UEs: int, CQI_info: Dict[int, int], SLAs: Dict[int, Dict[str, float]], initial_RB: int, onoff_configs: List[OnOffAppConfig], sink_config: SinkAppConfig, RB_resolution: int = 1, min_RB: int = 1, max_RB: int = 100, logger: None | logging.Logger = None, unlim_RB=True):
+    def __init__(self, N_UEs: int, CQI_info: Dict[int, int], SLAs: Dict[int, Dict[str, float]], initial_RB: int, onoff_configs: List[OnOffAppConfig], sink_config: SinkAppConfig, RB_resolution: int = 1, min_RB: int = 6, max_RB: int = 100, logger: None | logging.Logger = None, unlim_RB=True):
         super().__init__(N_UEs, initial_RB, RB_resolution, min_RB, max_RB, logger, unlim_RB)
 
         self.SLAs = SLAs
@@ -137,7 +137,7 @@ class EmbbSlice(Slice.BasicRanSlice):
         return np.array([self.current_RB, self.last_RB, n_recv, avg_packet_size])
 
 class MmtcSlice(Slice.BasicRanSlice):
-    def __init__(self, N_UEs: int, initial_RB: int, onoff_config: OnOffAppConfig, sink_config: SinkAppConfig, RB_resolution: int = 1, min_RB: int = 1, max_RB: int = 100, logger: None | logging.Logger = None, unlim_RB=True):
+    def __init__(self, N_UEs: int, initial_RB: int, onoff_config: OnOffAppConfig, sink_config: SinkAppConfig, RB_resolution: int = 1, min_RB: int = 6, max_RB: int = 100, logger: None | logging.Logger = None, unlim_RB=True):
         super().__init__(N_UEs, initial_RB, RB_resolution, min_RB, max_RB, logger, unlim_RB)
 
         # Install onoff client to UEs
@@ -165,7 +165,7 @@ class MmtcSlice(Slice.BasicRanSlice):
         return stat["throughput"]
 
 class UrllcSlice(Slice.BasicRanSlice):
-    def __init__(self, N_UEs: int, initial_RB: int, onoff_config: OnOffAppConfig, sink_config: SinkAppConfig, RB_resolution: int = 1, min_RB: int = 1, max_RB: int = 100, logger: None | logging.Logger = None, unlim_RB=True):
+    def __init__(self, N_UEs: int, initial_RB: int, onoff_config: OnOffAppConfig, sink_config: SinkAppConfig, RB_resolution: int = 1, min_RB: int = 6, max_RB: int = 100, logger: None | logging.Logger = None, unlim_RB=True):
         super().__init__(N_UEs, initial_RB, RB_resolution, min_RB, max_RB, logger, unlim_RB)
 
         # Install onoff client to UEs
