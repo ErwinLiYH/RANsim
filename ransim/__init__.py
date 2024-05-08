@@ -13,8 +13,8 @@ make_SeqTsSizeCallback_with_context(void(*func)(std::string, Ptr< const Packet >
 }
 """)
 
-ns.Config.SetDefault("ns3::LteSpectrumPhy::CtrlErrorModelEnabled", ns.BooleanValue(0))
-ns.Config.SetDefault("ns3::LteSpectrumPhy::DataErrorModelEnabled", ns.BooleanValue(0))
+# ns.Config.SetDefault("ns3::LteSpectrumPhy::CtrlErrorModelEnabled", ns.BooleanValue(0))
+# ns.Config.SetDefault("ns3::LteSpectrumPhy::DataErrorModelEnabled", ns.BooleanValue(0))
 
 TCP = "ns3::TcpSocketFactory"
 UDP = "ns3::UdpSocketFactory"

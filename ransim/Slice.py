@@ -207,6 +207,9 @@ class BasicRanSlice:
         # Attach UEs to initial eNodeB
         lte_helper.Attach(self.ue_devices, self.enb_divices[initial_RB].Get(0))
 
+        # Set Tx power to 0 for all eNodeBs except the initial one
+        self.open_enb(initial_RB)
+
     def stat_report(self, step_time, rxtx = "tx") -> pd.Series:
         """
         Analyze the permformance of the slice in this step.
@@ -303,8 +306,17 @@ class BasicRanSlice:
 
         return res
     
+    def open_enb(self, RB, power=30):
+        for i, d in self.enb_divices.items():
+            phy = d.Get(0).GetPhy()
+            if i != RB:
+                phy.SetTxPower(0)
+            else:
+                phy.SetTxPower(power)
+
     def handoverTo(self, N_RAB:int):
         self.logger.info(f"-------------------- step {step} handover --------------------")
+        self.open_enb(N_RAB)
         if N_RAB != self.current_RB:
             for i in range(self.N_UEs):
                 self.logger.info(f"UE {self.ids['UEs'][i]} handover to eNodeB with RB {N_RAB}")
