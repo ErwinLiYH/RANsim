@@ -1,5 +1,4 @@
 from ns import ns
-from typing import List
 from . import Slice
 import logging
 import gymnasium as gym
@@ -7,33 +6,29 @@ from gymnasium import spaces
 import numpy as np
 import random
 
-
-class Station(gym.Env):
-    def __init__(self, slice_list:List[Slice.BasicRanSlice], max_time, step_time=0.05, warmup_times=10, logger:None|logging.Logger = None, enb_distance=5000, ue_range=100):
+# make it as pure RL environment(remove slice list)
+class RL_Station(gym.Env):
+    def __init__(self, slice:Slice.BasicRanSlice, max_step, step_time=0.05, warmup_times=10, logger:None|logging.Logger = None, enb_distance=5000, ue_range=100):
         
         # Connect callback functions
         ns.Config.Connect("/NodeList/*/ApplicationList/*/$ns3::OnOffApplication/TxWithSeqTsSize", Slice.TxWithSeqTsSize_callback_cpp)
         ns.Config.Connect("/NodeList/*/ApplicationList/*/$ns3::PacketSink/RxWithSeqTsSize", Slice.RxWithSeqTsSize_callback_cpp)
 
-        self.Slice_list = slice_list
-        self.N_slices = len(slice_list)
+        self.Slice = slice
         self.step_time = step_time
         self.warmup_times = warmup_times
         self.logger = logger
 
         # time limit
-        self.max_time = max_time
+        self.max_step = max_step
 
         # Action space and observation space
-        self.action_space = spaces.Discrete(len(slice_list[0].candidate_RBs), start=6)
+        self.action_space = spaces.Discrete(len(slice.candidate_RBs))
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(5,), dtype=float)
 
         # Set location of eNodeBs and UEs
-        x = 0
-        for i in range(len(self.Slice_list)):
-            self.Slice_list[i].set_enb_location(x)
-            self.Slice_list[i].set_ue_location(x, ue_range)
-            x += enb_distance
+        self.Slice.set_enb_location(0)
+        self.Slice.set_ue_location(0, ue_range)
 
         # Log information
         self.log_info()
@@ -43,18 +38,16 @@ class Station(gym.Env):
 
     def log_info(self):
         if self.logger:
-            for i, j in enumerate(self.Slice_list):
-                self.logger.info(f"-------------------- Slice {i} --------------------")
-                for line in j.get_info().split("\n"):
-                    self.logger.info(line)
+            self.logger.info(f"-------------------- Slice --------------------")
+            for line in self.Slice.get_info().split("\n"):
+                self.logger.info(line)
 
     def warmup(self):
         self.logger.info(f"Begin warmup for {self.warmup_times} times......")
         ns.Simulator.Stop(ns.Seconds(self.step_time*self.warmup_times))
         ns.Simulator.Run()
         Slice.merge_records()
-        for i in self.Slice_list:
-            i.stat_report(self.step_time*self.warmup_times)
+        self.Slice.stat_report(self.step_time*self.warmup_times)
         Slice.clean_all_records()
         Slice.current_time += self.step_time*self.warmup_times
         self.logger.info("Warmup finished.")
@@ -65,50 +58,35 @@ class Station(gym.Env):
     def reset(self):
         self.logger.info("Resetting......")
 
-        random_RBs = []
-
         Slice.clean_all_records()
 
-        for i in self.Slice_list:
-            random_RB = random.choice(i.candidate_RBs)
-            random_RBs.append(random_RB)
+        random_RB = random.choice(self.Slice.candidate_RBs)
 
-        for i,j in zip(self.Slice_list, random_RBs):
-            i.handoverTo(j)
+        self.Slice.handoverTo(random_RB)
 
-        for i in self.Slice_list:
-            i.clean_RB_record(random_RB)
+        self.Slice.clean_RB_record(random_RB)
 
         self.warmup()
-        for i in self.Slice_list:
-            i.clean_stat()
+        self.Slice.clean_stat()
 
         # Run simulation for one step
         ns.Simulator.Stop(ns.Seconds(self.step_time))
         ns.Simulator.Run()
 
         Slice.merge_records()
-        l_obs = []
-        for i in self.Slice_list:
-            i.stat_report(self.step_time)
-            l_obs.append(i.get_observation())
+        self.Slice.stat_report(self.step_time)
+        obs = self.Slice.get_observation()
         Slice.step_records()
         Slice.current_time += self.step_time
 
-        if len(l_obs)==1:
-            l_obs = l_obs[0]
-        else:
-            l_obs = np.stack(l_obs)
-
         self.logger.info("Reset finished.")
-        return l_obs, self._get_info()
+        return obs, self._get_info()
 
     def step(self, action):
         # Do handover actions
-        for i, j in enumerate(self.Slice_list):
-            action = action+self.action_space.start
-            assert action in j.candidate_RBs, f"Action {action} is not in the action space {j.candidate_RBs}"
-            j.handoverTo(action)
+        action = action*self.Slice.RB_resolution + self.Slice.min_RB
+        assert action in self.Slice.candidate_RBs, f"Action {action} is not in the action space {self.Slice.candidate_RBs}"
+        self.Slice.handoverTo(action)
         
         # Run simulation for one step
         ns.Simulator.Stop(ns.Seconds(self.step_time))
@@ -116,10 +94,9 @@ class Station(gym.Env):
 
         # Get terminated
         terminated = False
-        if Slice.step >= self.max_time:
+        if Slice.step >= self.max_step:
             terminated = True
-        terminated_list = [i.get_terminated() for i in self.Slice_list]
-        if all(terminated_list):
+        if self.Slice.get_terminated():
             terminated = True
 
         # Get info
@@ -127,21 +104,13 @@ class Station(gym.Env):
 
         # Get rewards and local observations
         Slice.merge_records()
-        rewards = []
-        l_obs = []
-        for i in self.Slice_list:
-            i.stat_report(self.step_time)
-            rewards.append(i.get_reward())
-            l_obs.append(i.get_observation())
+        self.Slice.stat_report(self.step_time)
+        reward = self.Slice.get_reward()
+        obs = self.Slice.get_observation()
         Slice.step_records()
         Slice.current_time += self.step_time
-        reward = sum(rewards)
-        if len(l_obs)==1:
-            l_obs = l_obs[0]
-        else:
-            l_obs = np.stack(l_obs)
         
         # return [observation, reward, terminated, truncated, info] according to gym.Env v26
         # reference: https://gymnasium.farama.org/api/env/#methods
         # terminated and truncated reference: https://gymnasium.farama.org/tutorials/gymnasium_basics/handling_time_limits/
-        return l_obs, reward, terminated, False, info
+        return obs, reward, terminated, False, info
