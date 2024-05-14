@@ -13,6 +13,12 @@ make_SeqTsSizeCallback_with_context(void(*func)(std::string, Ptr< const Packet >
 }
 """)
 
+ns.Config.SetDefault("ns3::LteEnbRrc::DefaultTransmissionMode", ns.UintegerValue(2))
+# MIMO Spatial Multiplexity Open Loop
+ns.Config.SetDefault ("ns3::LteRlcUm::MaxTxBufferSize", ns.UintegerValue (100 * 1024))
+# ref: https://groups.google.com/g/ns-3-users/c/qbSu3pR9H5M, to improve throughput
+
+# Close error models
 # ns.Config.SetDefault("ns3::LteSpectrumPhy::CtrlErrorModelEnabled", ns.BooleanValue(0))
 # ns.Config.SetDefault("ns3::LteSpectrumPhy::DataErrorModelEnabled", ns.BooleanValue(0))
 
