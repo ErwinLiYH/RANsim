@@ -1,6 +1,7 @@
 import pandas as pd
 import random
 import logging
+from collections import deque
 from ns import ns
 from .utils import SinkAppConfig, OnOffAppConfig, logging_helper, list_to_abbr_str
 
@@ -131,14 +132,17 @@ class BasicRanSlice:
     """
     RanSlice is the basic class for creating a slice in RAN simulation. It sets up all the UEs' and eNodeBs' nodes and devices.
     """
-    def __init__(self, N_UEs:int, initial_RB:int, RB_resolution:int = 1, min_RB:int = 6, max_RB:int = 100, logger:None|logging.Logger = None, unlim_RB=True):
+    def __init__(self, N_UEs:int, initial_RB:int, RB_resolution:int = 1, min_RB:int = 6, max_RB:int = 100, logger:None|logging.Logger = None, unlim_RB=True, unchange_terminate:int=0):
         self.N_UEs = N_UEs
         self.last_RB = initial_RB
         self.current_RB = initial_RB
         self.changed_RB = False
+        self.change_RB_queue = deque(maxlen=unchange_terminate)
+        self.unchange_terminate = unchange_terminate
         self.min_RB = min_RB
         self.max_RB = max_RB
         self.RB_resolution = RB_resolution
+        self.candidate_RBs = list(range(min_RB, max_RB+1, RB_resolution))
         self.ids = {
             "UEs": [],
             "eNodeBs": []
@@ -150,7 +154,7 @@ class BasicRanSlice:
         # Create eNodeB nodes
         self.enb_nodes = ns.NodeContainer()
         if unlim_RB:
-            self.enb_nodes.Create(len(list(range(min_RB, max_RB+1, RB_resolution))))
+            self.enb_nodes.Create(len(self.candidate_RBs))
         else:
             self.enb_nodes.Create(6)
         mobilityhelper.Install(self.enb_nodes)
@@ -169,7 +173,7 @@ class BasicRanSlice:
 
         if unlim_RB:
             index = 0
-            for i in range(min_RB, max_RB+1, RB_resolution):
+            for i in self.candidate_RBs:
                 lte_helper.SetEnbDeviceAttribute("UlBandwidth", ns.UintegerValue(i))
                 lte_helper.SetEnbDeviceAttribute("DlBandwidth", ns.UintegerValue(i))
                 self.enb_divices[i] = lte_helper.InstallEnbDevice(self.enb_nodes.Get(index))
@@ -215,7 +219,7 @@ class BasicRanSlice:
         Analyze the permformance of the slice in this step.
         """
         # Dataframe to store the performance per UE
-        res = pd.DataFrame(columns=["UEIP", "step", "nSend", "nRecv", "nRecvStep", "minDelay", "maxDelay", "avgDelay", "minRate", "maxRate", "avgRate", "delivRate", "throughput", "tx_throughput", "pacSizeSum"])
+        res = pd.DataFrame(columns=["UEIP", "step", "nSend", "nRecv", "nRecvStep", "minDelay", "maxDelay", "avgDelay", "minRate", "maxRate", "avgRate", "delivRate", "throughput", "tx_throughput", "pacSizeSum", "tx_pacSizeSum"])
 
         # Analyze per UE
         for i in self.ue_ips:
@@ -260,8 +264,9 @@ class BasicRanSlice:
 
             # Average packet size
             pac_size_sum = sub_merged_df[sub_merged_df['_merge'] == 'both']["size_rx"].sum()
+            tx_pac_size_sum = sub_merged_df[sub_merged_df["step_tx"]==step]["size_tx"].sum()
 
-            res.loc[len(res)] = [i, step, sent_number, recv_number_total, recv_number_in_step, min_delay, max_delay, average_delay, min_rate, max_rate, average_rate, delivery_rate, throughput, tx_throughput, pac_size_sum]
+            res.loc[len(res)] = [i, step, sent_number, recv_number_total, recv_number_in_step, min_delay, max_delay, average_delay, min_rate, max_rate, average_rate, delivery_rate, throughput, tx_throughput, pac_size_sum, tx_pac_size_sum]
 
         # Log report
         if self.logger:
@@ -321,12 +326,13 @@ class BasicRanSlice:
             for i in range(self.N_UEs):
                 self.logger.info(f"UE {self.ids['UEs'][i]} handover to eNodeB with RB {N_RAB}")
                 lte_helper.HandoverRequest(ns.Seconds(0), self.ue_devices.Get(i), self.enb_divices[self.current_RB].Get(0).GetObject["LteEnbNetDevice"](), self.enb_divices[N_RAB].Get(0).GetObject["LteEnbNetDevice"]())
-            self.last_RB = self.current_RB
-            self.current_RB = N_RAB
             self.changed_RB = True
         else:
             self.logger.info(f"Retain in eNodeB with RB {N_RAB}")
             self.changed_RB = False
+        self.last_RB = self.current_RB
+        self.current_RB = N_RAB
+        self.change_RB_queue.append(self.changed_RB)
 
     def set_enb_location(self, x):
         # Set location of eNodeBs to (x, 0, 0)
@@ -357,9 +363,24 @@ class BasicRanSlice:
             res.append((nsVector3D.x, nsVector3D.y, nsVector3D.z))
         return res
     
+    def get_terminated(self):
+        if self.unchange_terminate:
+            if len(self.change_RB_queue) < self.unchange_terminate:
+                return False
+            else:
+                return not any(self.change_RB_queue)
+        else:
+            return False
+    
     def clean_stat(self):
         self.stat_df.drop(self.stat_df.index, inplace=True)
         self.stat_df.reset_index(drop=True, inplace=True)
+
+    def clean_RB_record(self, initial_RB):
+        self.last_RB = initial_RB
+        self.current_RB = initial_RB
+        self.changed_RB = False
+        self.change_RB_queue.clear()
 
     def __repr__(self) -> str:
         return f"<{self.__class__.__name__}[{self.N_UEs} UEs & {self.min_RB}:{self.RB_resolution}:{self.max_RB} eNodeBs]>"

@@ -5,6 +5,7 @@ import logging
 import gymnasium as gym
 from gymnasium import spaces
 import numpy as np
+import random
 
 
 class Station(gym.Env):
@@ -24,8 +25,8 @@ class Station(gym.Env):
         self.max_time = max_time
 
         # Action space and observation space
-        self.action_space = spaces.Box(low=0, high=1, shape=(self.N_slices,), dtype=float)
-        # self.observation_space = 
+        self.action_space = spaces.Discrete(len(slice_list[0].candidate_RBs), start=6)
+        self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(5,), dtype=float)
 
         # Set location of eNodeBs and UEs
         x = 0
@@ -63,26 +64,62 @@ class Station(gym.Env):
 
     def reset(self):
         self.logger.info("Resetting......")
+
+        random_RBs = []
+
         Slice.clean_all_records()
+
+        for i in self.Slice_list:
+            random_RB = random.choice(i.candidate_RBs)
+            random_RBs.append(random_RB)
+
+        for i,j in zip(self.Slice_list, random_RBs):
+            i.handoverTo(j)
+
+        for i in self.Slice_list:
+            i.clean_RB_record(random_RB)
+
+        self.warmup()
         for i in self.Slice_list:
             i.clean_stat()
+
+        # Run simulation for one step
+        ns.Simulator.Stop(ns.Seconds(self.step_time))
+        ns.Simulator.Run()
+
+        Slice.merge_records()
+        l_obs = []
+        for i in self.Slice_list:
+            i.stat_report(self.step_time)
+            l_obs.append(i.get_observation())
+        Slice.step_records()
+        Slice.current_time += self.step_time
+
+        if len(l_obs)==1:
+            l_obs = l_obs[0]
+        else:
+            l_obs = np.stack(l_obs)
+
         self.logger.info("Reset finished.")
+        return l_obs, self._get_info()
 
     def step(self, action):
         # Do handover actions
         for i, j in enumerate(self.Slice_list):
-            j.handoverTo(action[i])
+            action = action+self.action_space.start
+            assert action in j.candidate_RBs, f"Action {action} is not in the action space {j.candidate_RBs}"
+            j.handoverTo(action)
         
         # Run simulation for one step
         ns.Simulator.Stop(ns.Seconds(self.step_time))
         ns.Simulator.Run()
 
-        # Get observations
-        observations = self._get_obs()
-
         # Get terminated
         terminated = False
-        if Slice.current_time >= self.max_time:
+        if Slice.step >= self.max_time:
+            terminated = True
+        terminated_list = [i.get_terminated() for i in self.Slice_list]
+        if all(terminated_list):
             terminated = True
 
         # Get info
@@ -99,9 +136,12 @@ class Station(gym.Env):
         Slice.step_records()
         Slice.current_time += self.step_time
         reward = sum(rewards)
-        l_obs = np.stack(l_obs)
+        if len(l_obs)==1:
+            l_obs = l_obs[0]
+        else:
+            l_obs = np.stack(l_obs)
         
         # return [observation, reward, terminated, truncated, info] according to gym.Env v26
         # reference: https://gymnasium.farama.org/api/env/#methods
         # terminated and truncated reference: https://gymnasium.farama.org/tutorials/gymnasium_basics/handling_time_limits/
-        return observations, reward, terminated, False, info
+        return l_obs, reward, terminated, False, info
