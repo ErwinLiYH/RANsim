@@ -1,4 +1,4 @@
-from . import Slice
+from . import base_slice
 from typing import List, Dict
 from .utils import OnOffAppConfig, SinkAppConfig
 import logging
@@ -6,7 +6,7 @@ from ns import ns
 import numpy as np
 
 
-class OnOffSlice(Slice.BasicRanSlice):
+class OnOffSlice(base_slice.BasicRanSlice):
     """
     An example for functional slice. When creating a OnOffSlice, it will install a OnOff client for each UE, and do all action in BasicRanSlice.
     """
@@ -15,7 +15,7 @@ class OnOffSlice(Slice.BasicRanSlice):
 
         # Install onoff client to UEs
         for i in range(self.N_UEs):
-            client = ns.OnOffHelper(onoff_config.socket_type, ns.InetSocketAddress(Slice.p2p_ip_interface.GetAddress(1), sink_config.port).ConvertTo())
+            client = ns.OnOffHelper(onoff_config.socket_type, ns.InetSocketAddress(base_slice.p2p_ip_interface.GetAddress(1), sink_config.port).ConvertTo())
             client.SetAttribute("OnTime", onoff_config.on_time)
             client.SetAttribute("OffTime", onoff_config.off_time)
             client.SetAttribute("DataRate", onoff_config.data_rate)
@@ -53,7 +53,7 @@ class OnOffSlice(Slice.BasicRanSlice):
         stat = self.stat_report(step_time)
         return stat["throughput"]
     
-class EmbbSlice(Slice.BasicRanSlice):
+class EmbbSlice(base_slice.BasicRanSlice):
     def __init__(self, N_UEs: int, CQI_info: Dict[int, int], SLAs: Dict[int, Dict[str, float]], initial_RB: int, onoff_configs: List[OnOffAppConfig], sink_config: SinkAppConfig, RB_resolution: int = 1, min_RB: int = 6, max_RB: int = 100, logger: None | logging.Logger = None, unlim_RB=True, unchange_terminate:int=0):
         super().__init__(N_UEs, initial_RB, RB_resolution, min_RB, max_RB, logger, unlim_RB, unchange_terminate)
 
@@ -75,12 +75,12 @@ class EmbbSlice(Slice.BasicRanSlice):
             assert q in range(1, 9), "CQI should be in range 1-9"
             assert isinstance(q, int), "CQI should be integer"
             bearer = ns.EpsBearer(q)
-            Slice.lte_helper.ActivateDedicatedEpsBearer(self.ue_devices.Get(i), bearer, tft)
+            base_slice.lte_helper.ActivateDedicatedEpsBearer(self.ue_devices.Get(i), bearer, tft)
             self.ueip_cqi[self.ue_ips[i]] = q
 
         # Initialize onoff client on Remotehost to UE
         for i in range(self.N_UEs):
-            Slice.InitRemoteOnOffApp(sink_config, onoff_configs[i], self.ue_ip_interface.GetAddress(i))
+            base_slice.InitRemoteOnOffApp(sink_config, onoff_configs[i], self.ue_ip_interface.GetAddress(i))
 
         # Install sink app to all UEs
         for i in range(self.N_UEs):
@@ -150,13 +150,13 @@ class EmbbSlice(Slice.BasicRanSlice):
         # [current_RB, last_RB, n_recv, avg_packet_size]
         return np.array([int(self.changed_RB), n_recv, recv_avg_packet_size, n_send, tx_avg_packet_size])
 
-class MmtcSlice(Slice.BasicRanSlice):
+class MmtcSlice(base_slice.BasicRanSlice):
     def __init__(self, N_UEs: int, initial_RB: int, onoff_config: OnOffAppConfig, sink_config: SinkAppConfig, RB_resolution: int = 1, min_RB: int = 6, max_RB: int = 100, logger: None | logging.Logger = None, unlim_RB=True, unchange_terminate:int=0):
         super().__init__(N_UEs, initial_RB, RB_resolution, min_RB, max_RB, logger, unlim_RB, unchange_terminate)
 
         # Install onoff client to UEs
         for i in range(self.N_UEs):
-            client = ns.OnOffHelper(onoff_config.socket_type, ns.InetSocketAddress(Slice.p2p_ip_interface.GetAddress(1), sink_config.port).ConvertTo())
+            client = ns.OnOffHelper(onoff_config.socket_type, ns.InetSocketAddress(base_slice.p2p_ip_interface.GetAddress(1), sink_config.port).ConvertTo())
             client.SetAttribute("OnTime", onoff_config.on_time)
             client.SetAttribute("OffTime", onoff_config.off_time)
             client.SetAttribute("DataRate", onoff_config.data_rate)
@@ -178,13 +178,13 @@ class MmtcSlice(Slice.BasicRanSlice):
         stat = self.stat_report(step_time)
         return stat["throughput"]
 
-class UrllcSlice(Slice.BasicRanSlice):
+class UrllcSlice(base_slice.BasicRanSlice):
     def __init__(self, N_UEs: int, initial_RB: int, onoff_config: OnOffAppConfig, sink_config: SinkAppConfig, RB_resolution: int = 1, min_RB: int = 6, max_RB: int = 100, logger: None | logging.Logger = None, unlim_RB=True, unchange_terminate:int=0):
         super().__init__(N_UEs, initial_RB, RB_resolution, min_RB, max_RB, logger, unlim_RB, unchange_terminate)
 
         # Install onoff client to UEs
         for i in range(self.N_UEs):
-            client = ns.OnOffHelper(onoff_config.socket_type, ns.InetSocketAddress(Slice.p2p_ip_interface.GetAddress(1), sink_config.port).ConvertTo())
+            client = ns.OnOffHelper(onoff_config.socket_type, ns.InetSocketAddress(base_slice.p2p_ip_interface.GetAddress(1), sink_config.port).ConvertTo())
             client.SetAttribute("OnTime", onoff_config.on_time)
             client.SetAttribute("OffTime", onoff_config.off_time)
             client.SetAttribute("DataRate", onoff_config.data_rate)

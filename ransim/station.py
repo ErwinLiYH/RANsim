@@ -1,5 +1,5 @@
 from ns import ns
-from . import Slice
+from . import base_slice
 import logging
 import gymnasium as gym
 from gymnasium import spaces
@@ -8,11 +8,11 @@ import random
 
 
 class SingelSliceStation(gym.Env):
-    def __init__(self, slice:Slice.BasicRanSlice, max_step, step_time=0.05, warmup_times=10, logger:None|logging.Logger = None, enb_distance=5000, ue_range=100):
+    def __init__(self, slice:base_slice.BasicRanSlice, max_step, step_time=0.05, warmup_times=10, logger:None|logging.Logger = None, enb_distance=5000, ue_range=100):
         
         # Connect callback functions
-        ns.Config.Connect("/NodeList/*/ApplicationList/*/$ns3::OnOffApplication/TxWithSeqTsSize", Slice.TxWithSeqTsSize_callback_cpp)
-        ns.Config.Connect("/NodeList/*/ApplicationList/*/$ns3::PacketSink/RxWithSeqTsSize", Slice.RxWithSeqTsSize_callback_cpp)
+        ns.Config.Connect("/NodeList/*/ApplicationList/*/$ns3::OnOffApplication/TxWithSeqTsSize", base_slice.TxWithSeqTsSize_callback_cpp)
+        ns.Config.Connect("/NodeList/*/ApplicationList/*/$ns3::PacketSink/RxWithSeqTsSize", base_slice.RxWithSeqTsSize_callback_cpp)
 
         self.Slice = slice
         self.step_time = step_time
@@ -46,10 +46,10 @@ class SingelSliceStation(gym.Env):
         self.logger.info(f"Begin warmup for {self.warmup_times} times......")
         ns.Simulator.Stop(ns.Seconds(self.step_time*self.warmup_times))
         ns.Simulator.Run()
-        Slice.merge_records()
+        base_slice.merge_records()
         self.Slice.stat_report(self.step_time*self.warmup_times)
-        Slice.clean_all_records()
-        Slice.current_time += self.step_time*self.warmup_times
+        base_slice.clean_all_records()
+        base_slice.current_time += self.step_time*self.warmup_times
         self.logger.info("Warmup finished.")
 
     def _get_info(self):
@@ -58,7 +58,7 @@ class SingelSliceStation(gym.Env):
     def reset(self):
         self.logger.info("Resetting......")
 
-        Slice.clean_all_records()
+        base_slice.clean_all_records()
 
         random_RB = random.choice(self.Slice.candidate_RBs)
 
@@ -73,11 +73,11 @@ class SingelSliceStation(gym.Env):
         ns.Simulator.Stop(ns.Seconds(self.step_time))
         ns.Simulator.Run()
 
-        Slice.merge_records()
+        base_slice.merge_records()
         self.Slice.stat_report(self.step_time)
         obs = self.Slice.get_observation()
-        Slice.step_records()
-        Slice.current_time += self.step_time
+        base_slice.step_records()
+        base_slice.current_time += self.step_time
 
         self.logger.info("Reset finished.")
         return obs, self._get_info()
@@ -94,7 +94,7 @@ class SingelSliceStation(gym.Env):
 
         # Get terminated
         terminated = False
-        if Slice.step >= self.max_step:
+        if base_slice.step >= self.max_step:
             terminated = True
         if self.Slice.get_terminated():
             terminated = True
@@ -103,12 +103,12 @@ class SingelSliceStation(gym.Env):
         info = self._get_info()
 
         # Get rewards and local observations
-        Slice.merge_records()
+        base_slice.merge_records()
         self.Slice.stat_report(self.step_time)
         reward = self.Slice.get_reward()
         obs = self.Slice.get_observation()
-        Slice.step_records()
-        Slice.current_time += self.step_time
+        base_slice.step_records()
+        base_slice.current_time += self.step_time
         
         # return [observation, reward, terminated, truncated, info] according to gym.Env v26
         # reference: https://gymnasium.farama.org/api/env/#methods
