@@ -6,8 +6,8 @@ from gymnasium import spaces
 import numpy as np
 import random
 
-# make it as pure RL environment(remove slice list)
-class RL_Station(gym.Env):
+
+class SingelSliceStation(gym.Env):
     def __init__(self, slice:Slice.BasicRanSlice, max_step, step_time=0.05, warmup_times=10, logger:None|logging.Logger = None, enb_distance=5000, ue_range=100):
         
         # Connect callback functions
