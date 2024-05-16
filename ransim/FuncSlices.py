@@ -130,7 +130,7 @@ class EmbbSlice(Slice.BasicRanSlice):
         # Calculate reward
         # reward = 1 * SE - 1 * SLA_violation # - 1 * P
         if SLA_violation == 0:
-            reward = SE
+            reward = SE**2
         else: 
             reward = -np.log(1-(sum([i for i in delay_violation_rate if i < 0]) + sum([i for i in throughput_violation_rate if i < 0])))
 
