@@ -150,6 +150,7 @@ class BasicRanSlice:
         self.ue_ips = []
         self.stat_df = pd.DataFrame(columns=["step", "nSend", "nRecv", "nRecvStep", "minDelay", "maxDelay", "avgDelay", "minRate", "maxRate", "avgRate", "delivRate", "throughput"])
         self.logger = logger
+        self.name = None
 
         # Create eNodeB nodes
         self.enb_nodes = ns.NodeContainer()
@@ -388,7 +389,8 @@ class BasicRanSlice:
     def get_info(self, max_display_nodes:int = 3) -> str:
         ue_location = self.get_ue_location()
         enb_location = self.get_enb_location()
-        res = f"{self.__class__.__name__}:\n\n"
+        name = f"{self.name} ({self.__class__.__name__})" if self.name else self.__class__.__name__
+        res = f"{name}:\n\n"
         res += f"Num of UEs: {self.N_UEs}\n"
         for i in range(self.N_UEs):
             if (i<max_display_nodes) or (i==self.N_UEs-1):
