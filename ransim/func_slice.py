@@ -144,12 +144,9 @@ class EmbbSlice(base_slice.BasicRanSlice):
     def get_observation(self):
         n_recv = self.stat[3].sum()
         n_send = self.stat[5].sum()
-        if n_recv != 0:
-            recv_avg_packet_size = self.stat[4].sum() / n_recv
-        else:
-            recv_avg_packet_size = 0
-        tx_avg_packet_size = self.stat[6].sum() / n_send
-        # [current_RB, last_RB, n_recv, avg_packet_size]
+        recv_avg_packet_size = self.stat[4].sum() / n_recv if n_recv != 0 else 0
+        tx_avg_packet_size = self.stat[6].sum() / n_send if n_send != 0 else 0
+        # [if_changed, n_recv, avg_recv, avg_recv_packet_size, n_send, avg_send_packet_size]
         return np.array([int(self.changed_RB), n_recv, recv_avg_packet_size, n_send, tx_avg_packet_size])
 
 class MmtcSlice(base_slice.BasicRanSlice):
