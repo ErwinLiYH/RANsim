@@ -111,7 +111,9 @@ class EmbbSlice(base_slice.BasicRanSlice):
         throughput_violation_rate = []
         delay_violation_rate = []
         for cqi, sla in self.SLAs.items():
-            throughput_violation_rate.append((self.stat[0][cqi] - sla["throughput"]) / sla["throughput"])
+            throughput_violation_rate_temp = (self.stat[0][cqi] - sla["throughput"]) / sla["throughput"] if self.stat[1][cqi] >= sla["throughput"] else 0
+            # throughput_violation_rate.append((self.stat[0][cqi] - sla["throughput"]) / sla["throughput"])
+            throughput_violation_rate.append(throughput_violation_rate_temp)
             delay_violation_rate.append((sla["delay"] - self.stat[2][cqi]) / sla["delay"])
             if self.stat[0][cqi] < sla["throughput"]:
                 if self.stat[1][cqi] >= sla["throughput"]:
