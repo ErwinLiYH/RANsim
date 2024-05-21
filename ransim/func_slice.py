@@ -150,8 +150,11 @@ class EmbbSlice(base_slice.BasicRanSlice):
         return np.array([int(self.changed_RB), n_recv, recv_avg_packet_size, n_send, tx_avg_packet_size])
 
 class MmtcSlice(base_slice.BasicRanSlice):
-    def __init__(self, N_UEs: int, initial_RB: int, onoff_config: OnOffAppConfig, sink_config: SinkAppConfig, RB_resolution: int = 1, min_RB: int = 6, max_RB: int = 100, logger: None | logging.Logger = None, unlim_RB=True, unchange_terminate:int=0):
+    def __init__(self, N_UEs: int, SLA: Dict[str, float], initial_RB: int, onoff_config: OnOffAppConfig, sink_config: SinkAppConfig, RB_resolution: int = 1, min_RB: int = 6, max_RB: int = 100, logger: None | logging.Logger = None, unlim_RB=True, unchange_terminate:int=0):
         super().__init__(N_UEs, initial_RB, RB_resolution, min_RB, max_RB, logger, unlim_RB, unchange_terminate)
+
+        self.SLA = SLA
+        self.SLA_violation_list = []
 
         # Install onoff client to UEs
         for i in range(self.N_UEs):
@@ -169,13 +172,51 @@ class MmtcSlice(base_slice.BasicRanSlice):
             self.client_apps.Stop(onoff_config.stop_time)
 
     def stat_report(self, step_time):
-        stat = super().stat_report(step_time)
-        avg_data = stat.iloc[:,1:].mean()
-        self.stat_df.loc[len(self.stat_df)] = avg_data
+        stat = super().stat_report(step_time, "tx")
+        # Default stat format:
+        # ["UEIP", "step", "nSend", "nRecv", "nRecvStep", "minDelay", "maxDelay", "avgDelay", "minRate", "maxRate", "avgRate", "delivRate", "throughput", "tx_throughput", "pacSizeSum", "tx_pacSizeSum"]
+        stat = stat[["UEIP", "maxDelay", "throughput", "tx_throughput", "pacSizeSum", "nRecv", "nSend", "tx_pacSizeSum"]]
+        total_throughput = stat["throughput"].sum()
+        total_tx_throughput = stat["tx_throughput"].sum()
+        max_delay = stat["maxDelay"].max()
+        total_n_recv = stat["nRecv"].sum()
+        total_pac_size = stat["pacSizeSum"].sum()
+        total_n_send = stat["nSend"].sum()
+        total_tx_pac_size = stat["tx_pacSizeSum"].sum()
+        self.stat = (total_throughput, total_tx_throughput, max_delay, total_n_recv, total_pac_size, total_n_send, total_tx_pac_size)
 
-    def get_reward(self, step_time):
-        stat = self.stat_report(step_time)
-        return stat["throughput"]
+    def get_reward(self):
+        SLA_violation = 0
+        throughput_violation_rate = (self.stat[0] - self.SLA["throughput"]) / self.SLA["throughput"] if self.stat[1] >= self.SLA["throughput"] else 0
+        delay_violation_rate = (self.SLA["delay"] - self.stat[2]) / self.SLA["delay"]
+        if self.stat[0] < self.SLA["throughput"]:
+            if self.stat[1] >= self.SLA["throughput"]:
+                SLA_violation = 1
+        if self.stat[2] > self.SLA["delay"]:
+            SLA_violation = 1
+
+        self.SLA_violation_list.append((SLA_violation, delay_violation_rate, throughput_violation_rate))
+
+        # Calculate SE (spectral efficiency)
+        SE = (self.stat[0]*1024*1024) / (180000 * self.current_RB) # bps/Hz
+
+        # Calculate reward
+        if SLA_violation == 0:
+            reward = SE**2
+        else:
+            delay_violation_rate = delay_violation_rate if delay_violation_rate < 0 else 0
+            throughput_violation_rate = throughput_violation_rate if throughput_violation_rate < 0 else 0
+            reward = -np.log(1 - (delay_violation_rate + throughput_violation_rate))
+
+        return reward
+    
+    def get_observation(self):
+        n_recv = self.stat[3].sum()
+        n_send = self.stat[5].sum()
+        recv_avg_packet_size = self.stat[4].sum() / n_recv if n_recv != 0 else 0
+        tx_avg_packet_size = self.stat[6].sum() / n_send if n_send != 0 else 0
+        # [if_changed, n_recv, avg_recv, avg_recv_packet_size, n_send, avg_send_packet_size]
+        return np.array([int(self.changed_RB), n_recv, recv_avg_packet_size, n_send, tx_avg_packet_size])
 
 class UrllcSlice(base_slice.BasicRanSlice):
     def __init__(self, N_UEs: int, initial_RB: int, onoff_config: OnOffAppConfig, sink_config: SinkAppConfig, RB_resolution: int = 1, min_RB: int = 6, max_RB: int = 100, logger: None | logging.Logger = None, unlim_RB=True, unchange_terminate:int=0):
