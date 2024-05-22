@@ -123,7 +123,7 @@ class EmbbSlice(base_slice.BasicRanSlice):
         self.SLA_violation_list.append((SLA_violation, delay_violation_rate, throughput_violation_rate))
 
         # Calculate SE (spectral efficiency)
-        SE = (self.stat[0].sum()*1024*1024) / (180000 * self.current_RB) # bps/Hz
+        SE = (self.stat[0].sum()*1000*1000) / (180000 * self.current_RB) # bps/Hz
         self.SE_list.append(SE)
 
         # Bandwidth changing panalty
@@ -198,7 +198,7 @@ class MmtcSlice(base_slice.BasicRanSlice):
         self.SLA_violation_list.append((SLA_violation, delay_violation_rate, throughput_violation_rate))
 
         # Calculate SE (spectral efficiency)
-        SE = (self.stat[0]*1024*1024) / (180000 * self.current_RB) # bps/Hz
+        SE = (self.stat[0]*1000*1000) / (180000 * self.current_RB) # bps/Hz
 
         # Calculate reward
         if SLA_violation == 0:

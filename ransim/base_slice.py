@@ -251,17 +251,17 @@ class BasicRanSlice:
 
             # Rate (Mb/s): avg(packet size / (receiving time - sending time))
             rates = sub_merged_df[sub_merged_df['_merge'] == 'both']["size_rx"] / delays
-            average_rate = rates.mean()*8/1024/1024
-            max_rate = rates.max()*8/1024/1024
-            min_rate = rates.min()*8/1024/1024
+            average_rate = rates.mean()*8/1000/1000
+            max_rate = rates.max()*8/1000/1000
+            min_rate = rates.min()*8/1000/1000
 
             # Throughput (Mb/s): total received size / step time
             throughput = sub_merged_df["size_rx"].sum() / step_time
-            throughput = throughput*8/1024/1024
+            throughput = throughput*8/1000/1000
             
             # Tx throughput (Mb/s): total sent size / step time
             tx_throughput = sub_merged_df[sub_merged_df["step_tx"]==step]["size_tx"].sum() / step_time
-            tx_throughput = tx_throughput*8/1024/1024
+            tx_throughput = tx_throughput*8/1000/1000
 
             # Average packet size
             pac_size_sum = sub_merged_df[sub_merged_df['_merge'] == 'both']["size_rx"].sum()
@@ -291,13 +291,13 @@ class BasicRanSlice:
             average_delay = delays.mean()
 
             rates = sub_merged_df[sub_merged_df['_merge'] == 'both']["size_rx"] / delays
-            average_rate = rates.mean()*8/1024/1024
+            average_rate = rates.mean()*8/1000/1000
 
             throughput = sub_merged_df["size_rx"].sum() / step_time
-            throughput = throughput*8/1024/1024
+            throughput = throughput*8/1000/1000
 
             tx_throughput = sub_merged_df[sub_merged_df["step_tx"]==step]["size_tx"].sum() / step_time
-            tx_throughput = tx_throughput*8/1024/1024
+            tx_throughput = tx_throughput*8/1000/1000
 
             self.logger.info(f"-------------------- step {step} report <{current_time:.3f}s - {current_time+step_time:.3f}s> --------------------")
             self.logger.info(f"Sent {sent_number} packet in step {step}.")
