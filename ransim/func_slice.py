@@ -6,6 +6,8 @@ from ns import ns
 import numpy as np
 
 
+THRESHOLD = 0.05
+
 class OnOffSlice(base_slice.BasicRanSlice):
     """
     An example for functional slice. When creating a OnOffSlice, it will install a OnOff client for each UE, and do all action in BasicRanSlice.
@@ -115,10 +117,10 @@ class EmbbSlice(base_slice.BasicRanSlice):
             # throughput_violation_rate.append((self.stat[0][cqi] - sla["throughput"]) / sla["throughput"])
             throughput_violation_rate.append(throughput_violation_rate_temp)
             delay_violation_rate.append((sla["delay"] - self.stat[2][cqi]) / sla["delay"])
-            if self.stat[0][cqi] < sla["throughput"]:
+            if self.stat[0][cqi] < sla["throughput"] and throughput_violation_rate_temp < -THRESHOLD:
                 if self.stat[1][cqi] >= sla["throughput"]:
                     SLA_violation = 1
-            if self.stat[2][cqi] > sla["delay"]:
+            if self.stat[2][cqi] > sla["delay"] and delay_violation_rate[-1] < -THRESHOLD:
                 SLA_violation = 1
         self.SLA_violation_list.append((SLA_violation, delay_violation_rate, throughput_violation_rate))
 
