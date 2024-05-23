@@ -25,17 +25,17 @@ class SinarioOne(MultiProcessWrapperForGym):
         embb_sla = {
             1: {
                 "delay": 0.01,
-                "throughput": 10,
+                "throughput": 5,
             },
             7:{
                 "delay": 0.05,
-                "throughput": 20,
+                "throughput": 10,
             }
         }
 
-        embb_slice = func_slice.EmbbSlice(3, {1:2, 7:1}, embb_sla, 26, [onoff_config1, onoff_config2, onoff_config3], sink_config, logger=embb_log, unlim_RB=True, RB_resolution=1, unchange_terminate=10)
+        embb_slice = func_slice.EmbbSlice(3, {1:2, 7:1}, embb_sla, 26, [onoff_config1, onoff_config2, onoff_config3], sink_config, logger=embb_log, unlim_RB=True, RB_resolution=1, unchange_terminate=self.unchange_terminate)
 
-        env = station.SingelSliceStation(embb_slice, 3000, logger=station_log, warmup_times=5, step_time=0.1)
+        env = station.SingelSliceStation(embb_slice, self.max_step, logger=station_log, warmup_times=5, step_time=0.1)
         
         # Must put the observation_space and action_space to the result_queue
         self.result_queue.put(env.observation_space)
@@ -44,7 +44,6 @@ class SinarioOne(MultiProcessWrapperForGym):
         # Must add a loop to keep the worker running and waiting for the command
         while True:
             command, para = self.action_queue.get()
-            print(command, para)
             if command == 'reset':
                 self.result_queue.put(env.reset())
             elif command == 'step':
