@@ -29,7 +29,7 @@ class SingelSliceStation(gym.Env):
 
         # Action space and observation space
         self.action_space = spaces.Discrete(len(slice.candidate_RBs))
-        self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(5,), dtype=float)
+        self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(6,), dtype=float)
 
         # Set location of eNodeBs and UEs
         self.Slice.set_enb_location(0)
@@ -52,7 +52,7 @@ class SingelSliceStation(gym.Env):
         ns.Simulator.Stop(ns.Seconds(self.step_time*self.warmup_times))
         ns.Simulator.Run()
         base_slice.merge_records()
-        self.Slice.stat_report(self.step_time*self.warmup_times)
+        self.Slice.stat_report(self.step_time*self.warmup_times, if_log=False)
         base_slice.clean_all_records()
         base_slice.current_time += self.step_time*self.warmup_times
         self.logger.info("Warmup finished.")

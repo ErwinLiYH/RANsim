@@ -215,7 +215,7 @@ class BasicRanSlice:
         # Set Tx power to 0 for all eNodeBs except the initial one
         self.open_enb(initial_RB)
 
-    def stat_report(self, step_time, rxtx = "tx") -> pd.Series:
+    def stat_report(self, step_time, rxtx = "tx", if_log=True) -> pd.Series:
         """
         Analyze the permformance of the slice in this step.
         """
@@ -270,7 +270,7 @@ class BasicRanSlice:
             res.loc[len(res)] = [i, step, sent_number, recv_number_total, recv_number_in_step, min_delay, max_delay, average_delay, min_rate, max_rate, average_rate, delivery_rate, throughput, tx_throughput, pac_size_sum, tx_pac_size_sum]
 
         # Log report
-        if self.logger:
+        if self.logger and if_log:
             # Calculate performance per slice
             if rxtx == "tx":
                 sub_merged_df = merged_df[merged_df["src_ip"].isin(self.ue_ips)]

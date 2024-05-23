@@ -90,8 +90,8 @@ class EmbbSlice(base_slice.BasicRanSlice):
             sink_apps.Start(sink_config.start_time)
             sink_apps.Stop(sink_config.stop_time)
 
-    def stat_report(self, step_time):
-        stat = super().stat_report(step_time, "rx")
+    def stat_report(self, step_time, if_log=True):
+        stat = super().stat_report(step_time, "rx", if_log)
         # Default stat format:
         # ["UEIP", "step", "nSend", "nRecv", "nRecvStep", "minDelay", "maxDelay", "avgDelay", "minRate", "maxRate", "avgRate", "delivRate", "throughput", "tx_throughput", "pacSizeSum", "tx_pacSizeSum"]
         stat = stat[["UEIP", "maxDelay", "throughput", "tx_throughput", "pacSizeSum", "nRecv", "nSend", "tx_pacSizeSum"]]
@@ -141,13 +141,15 @@ class EmbbSlice(base_slice.BasicRanSlice):
 
         return reward
     
-    def get_observation(self):
+    def get_observation(self, if_log=True):
         n_recv = self.stat[3].sum()
         n_send = self.stat[5].sum()
         recv_avg_packet_size = self.stat[4].sum() / n_recv if n_recv != 0 else 0
         tx_avg_packet_size = self.stat[6].sum() / n_send if n_send != 0 else 0
         # [if_changed, n_recv, avg_recv, avg_recv_packet_size, n_send, avg_send_packet_size]
-        return np.array([int(self.changed_RB), n_recv, recv_avg_packet_size, n_send, tx_avg_packet_size])
+        if self.logger and if_log:
+            self.logger.info(f"Observation: {[self.current_RB, int(self.changed_RB), n_recv, recv_avg_packet_size, n_send, tx_avg_packet_size]}")
+        return np.array([self.current_RB, int(self.changed_RB), n_recv, recv_avg_packet_size, n_send, tx_avg_packet_size])
 
 class MmtcSlice(base_slice.BasicRanSlice):
     def __init__(self, N_UEs: int, SLA: Dict[str, float], initial_RB: int, onoff_config: OnOffAppConfig, sink_config: SinkAppConfig, RB_resolution: int = 1, min_RB: int = 6, max_RB: int = 100, logger: None | logging.Logger = None, unlim_RB=True, unchange_terminate:int=0):
@@ -171,8 +173,8 @@ class MmtcSlice(base_slice.BasicRanSlice):
             self.client_apps.Start(onoff_config.start_time)
             self.client_apps.Stop(onoff_config.stop_time)
 
-    def stat_report(self, step_time):
-        stat = super().stat_report(step_time, "tx")
+    def stat_report(self, step_time, if_log=True):
+        stat = super().stat_report(step_time, "tx", if_log)
         # Default stat format:
         # ["UEIP", "step", "nSend", "nRecv", "nRecvStep", "minDelay", "maxDelay", "avgDelay", "minRate", "maxRate", "avgRate", "delivRate", "throughput", "tx_throughput", "pacSizeSum", "tx_pacSizeSum"]
         stat = stat[["UEIP", "maxDelay", "throughput", "tx_throughput", "pacSizeSum", "nRecv", "nSend", "tx_pacSizeSum"]]
@@ -210,13 +212,15 @@ class MmtcSlice(base_slice.BasicRanSlice):
 
         return reward
     
-    def get_observation(self):
+    def get_observation(self, if_log=True):
         n_recv = self.stat[3].sum()
         n_send = self.stat[5].sum()
         recv_avg_packet_size = self.stat[4].sum() / n_recv if n_recv != 0 else 0
         tx_avg_packet_size = self.stat[6].sum() / n_send if n_send != 0 else 0
         # [if_changed, n_recv, avg_recv, avg_recv_packet_size, n_send, avg_send_packet_size]
-        return np.array([int(self.changed_RB), n_recv, recv_avg_packet_size, n_send, tx_avg_packet_size])
+        if self.logger and if_log:
+            self.logger.info(f"Observation: {[self.current_RB, int(self.changed_RB), n_recv, recv_avg_packet_size, n_send, tx_avg_packet_size]}")
+        return np.array([self.current_RB, int(self.changed_RB), n_recv, recv_avg_packet_size, n_send, tx_avg_packet_size])
 
 class UrllcSlice(base_slice.BasicRanSlice):
     def __init__(self, N_UEs: int, initial_RB: int, onoff_config: OnOffAppConfig, sink_config: SinkAppConfig, RB_resolution: int = 1, min_RB: int = 6, max_RB: int = 100, logger: None | logging.Logger = None, unlim_RB=True, unchange_terminate:int=0):
