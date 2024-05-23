@@ -23,6 +23,7 @@ class SingelSliceStation(gym.Env):
         self.step_time = step_time
         self.warmup_times = warmup_times
         self.logger = logger
+        self.reset_result = None   # To avoid repeated reset, reset() will set this value to the result of reset, step() will clean this value
 
         # time limit
         self.max_step = max_step
@@ -49,6 +50,13 @@ class SingelSliceStation(gym.Env):
 
     def warmup(self):
         self.logger.info(f"Begin warmup for {self.warmup_times} times......")
+        
+        # Skip the off time of onoff application
+        while True:
+            obs = self.simple_step()
+            if any([i != 0 for i in obs[2:]]):
+                break
+        
         ns.Simulator.Stop(ns.Seconds(self.step_time*self.warmup_times))
         ns.Simulator.Run()
         base_slice.merge_records()
@@ -57,37 +65,58 @@ class SingelSliceStation(gym.Env):
         base_slice.current_time += self.step_time*self.warmup_times
         self.logger.info("Warmup finished.")
 
+    def simple_step(self):
+        # Don't do handover actions, just run simulation for one step and get observation
+        ns.Simulator.Stop(ns.Seconds(self.step_time))
+        ns.Simulator.Run()
+        base_slice.merge_records()
+        self.Slice.stat_report(self.step_time, if_log=False)
+        obs = self.Slice.get_observation(if_log=False)
+        base_slice.clean_all_records()
+        base_slice.current_time += self.step_time
+        return obs
+
     def _get_info(self):
         return {}
 
     def reset(self):
-        self.logger.info("Resetting......")
+        if self.reset_result:
+            self.logger.info("Repeated reset, skip this")     # repeated reset, skip
+            return self.reset_result
+        else:    
+            self.logger.info("Resetting......")
 
-        base_slice.clean_all_records()
+            base_slice.clean_all_records()
 
-        random_RB = random.choice(self.Slice.candidate_RBs)
+            random_RB = random.choice(self.Slice.candidate_RBs)
 
-        self.Slice.handoverTo(random_RB)
+            self.Slice.handoverTo(random_RB)
 
-        self.Slice.clean_RB_record(random_RB)
+            self.Slice.clean_RB_record(random_RB)
 
-        self.warmup()
-        self.Slice.clean_stat()
+            self.warmup()
+            self.Slice.clean_stat()
 
-        # Run simulation for one step
-        ns.Simulator.Stop(ns.Seconds(self.step_time))
-        ns.Simulator.Run()
+            # Run simulation for one step
+            ns.Simulator.Stop(ns.Seconds(self.step_time))
+            ns.Simulator.Run()
 
-        base_slice.merge_records()
-        self.Slice.stat_report(self.step_time)
-        obs = self.Slice.get_observation()
-        base_slice.step_records()
-        base_slice.current_time += self.step_time
+            base_slice.merge_records()
+            self.Slice.stat_report(self.step_time)
+            obs = self.Slice.get_observation()
+            base_slice.step_records()
+            base_slice.current_time += self.step_time
 
-        self.logger.info("Reset finished.")
-        return obs, self._get_info()
+            self.logger.info("Reset finished.")
+
+            self.reset_result = (obs, self._get_info())
+            return obs, self._get_info()
 
     def step(self, action):
+        # clean reset result
+        if self.reset_result:
+            self.reset_result = None
+
         # Do handover actions
         action = action*self.Slice.RB_resolution + self.Slice.min_RB
         assert action in self.Slice.candidate_RBs, f"Action {action} is not in the action space {self.Slice.candidate_RBs}"
