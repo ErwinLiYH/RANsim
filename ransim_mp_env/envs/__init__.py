@@ -9,6 +9,7 @@ class MultiProcessWrapperForGym(gym.Env):
         self.action_queue = multiprocessing.Queue()
         self.result_queue = multiprocessing.Queue()
         self.process = multiprocessing.Process(target=self._worker)
+        self.process.daemon = True
         self.process.start()
         self.observation_space = self.result_queue.get()
         self.action_space = self.result_queue.get()
