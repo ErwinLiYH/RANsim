@@ -38,6 +38,18 @@ def RxWithSeqTsSize_callback(contex, packet, address_src, address_dest, SeqTsSiz
 TxWithSeqTsSize_callback_cpp = ns.cppyy.gbl.make_SeqTsSizeCallback_with_context(TxWithSeqTsSize_callback)
 RxWithSeqTsSize_callback_cpp = ns.cppyy.gbl.make_SeqTsSizeCallback_with_context(RxWithSeqTsSize_callback)
 
+# Callbacks of handover events
+
+def NotifyHandoverEndOkUe_callback(contex, imis, cellId, rnti):
+    CALLBACK_LOGGER.debug(f"At {ns.Simulator.Now().GetSeconds():.5f}s ,{contex}, RNTI {rnti} handover to cell {cellId} is successful")
+
+def NotifyHandoverStartUe_callback(contex, imis, cellId, rnti, targetCellId):
+    CALLBACK_LOGGER.debug(f"At {ns.Simulator.Now().GetSeconds():.5f}s ,{contex}, RNTI {rnti} start handover to cell {targetCellId}")
+
+NotifyHandoverEndOkUe_callback_cpp = ns.cppyy.gbl.make_NotifyHandoverEndOkUeCallback(NotifyHandoverEndOkUe_callback)
+
+NotifyHandoverStartUe_callback_cpp = ns.cppyy.gbl.make_NotifyHandoverStartUeCallback(NotifyHandoverStartUe_callback)
+
 # -------------------- Function to merge and clean records --------------------
 
 def merge_records():

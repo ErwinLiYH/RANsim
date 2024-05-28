@@ -18,6 +18,8 @@ class SingelSliceStation(gym.Env):
         # Connect callback functions
         ns.Config.Connect("/NodeList/*/ApplicationList/*/$ns3::OnOffApplication/TxWithSeqTsSize", base_slice.TxWithSeqTsSize_callback_cpp)
         ns.Config.Connect("/NodeList/*/ApplicationList/*/$ns3::PacketSink/RxWithSeqTsSize", base_slice.RxWithSeqTsSize_callback_cpp)
+        ns.Config.Connect("/NodeList/*/DeviceList/*/LteUeRrc/HandoverEndOk", base_slice.NotifyHandoverEndOkUe_callback_cpp)
+        ns.Config.Connect("/NodeList/*/DeviceList/*/LteUeRrc/HandoverStart", base_slice.NotifyHandoverStartUe_callback_cpp)
 
         self.Slice = slice
         self.step_time = step_time

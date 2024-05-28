@@ -11,6 +11,16 @@ Callback<void, std::string, Ptr< const Packet >, const Address &, const Address 
 make_SeqTsSizeCallback_with_context(void(*func)(std::string, Ptr< const Packet >, const Address &, const Address &, const SeqTsSizeHeader &)){
     return MakeCallback(func);
 }
+
+Callback<void, std::string, uint64_t, uint16_t, uint16_t>
+make_NotifyHandoverEndOkUeCallback(void(*func)(std::string, uint64_t, uint16_t, uint16_t)){
+    return MakeCallback(func);
+}
+
+Callback<void, std::string, uint64_t, uint16_t, uint16_t, uint16_t>
+make_NotifyHandoverStartUeCallback(void(*func)(std::string, uint64_t, uint16_t, uint16_t, uint16_t)){
+    return MakeCallback(func);
+}
 """)
 
 ns.Config.SetDefault("ns3::LteEnbRrc::DefaultTransmissionMode", ns.UintegerValue(2))
