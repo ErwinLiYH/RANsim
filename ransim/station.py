@@ -59,13 +59,14 @@ class SingelSliceStation(gym.Env):
             if any([i != 0 for i in obs[2:]]):
                 break
         
-        ns.Simulator.Stop(ns.Seconds(self.step_time*self.warmup_times))
-        ns.Simulator.Run()
-        base_slice.merge_records()
-        self.Slice.stat_report(self.step_time*self.warmup_times, if_log=False)
-        base_slice.clean_all_records()
-        base_slice.current_time += self.step_time*self.warmup_times
-        self.logger.info("Warmup finished.")
+        if self.warmup_times >= 1:
+            ns.Simulator.Stop(ns.Seconds(self.step_time*self.warmup_times))
+            ns.Simulator.Run()
+            base_slice.merge_records()
+            self.Slice.stat_report(self.step_time*self.warmup_times, if_log=False)
+            base_slice.clean_all_records()
+            base_slice.current_time += self.step_time*self.warmup_times
+            self.logger.info("Warmup finished.")
 
     def simple_step(self):
         # Don't do handover actions, just run simulation for one step and get observation
@@ -120,9 +121,10 @@ class SingelSliceStation(gym.Env):
             self.reset_result = None
 
         # Do handover actions
-        action = action*self.Slice.RB_resolution + self.Slice.min_RB
-        assert action in self.Slice.candidate_RBs, f"Action {action} is not in the action space {self.Slice.candidate_RBs}"
-        self.Slice.handoverTo(action)
+        if action is not None:
+            action = action*self.Slice.RB_resolution + self.Slice.min_RB
+            assert action in self.Slice.candidate_RBs, f"Action {action} is not in the action space {self.Slice.candidate_RBs}"
+            self.Slice.handoverTo(action)
         
         # Run simulation for one step
         ns.Simulator.Stop(ns.Seconds(self.step_time))
