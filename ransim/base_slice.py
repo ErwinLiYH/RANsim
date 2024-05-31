@@ -160,6 +160,7 @@ class BasicRanSlice:
         self.max_RB = max_RB
         self.RB_resolution = RB_resolution
         self.candidate_RBs = list(range(min_RB, max_RB+1, RB_resolution))
+        self.plot_data = []
         self.ids = {
             "UEs": [],
             "eNodeBs": []
@@ -239,6 +240,8 @@ class BasicRanSlice:
         # Dataframe to store the performance per UE
         res = pd.DataFrame(columns=["UEIP", "step", "nSend", "nRecv", "nRecvStep", "minDelay", "maxDelay", "avgDelay", "minRate", "maxRate", "avgRate", "delivRate", "throughput", "tx_throughput", "pacSizeSum", "tx_pacSizeSum"])
 
+        plot_data = {"step": step, "UE_data": {}}
+
         # Analyze per UE
         for i in self.ue_ips:
             # Filter to analyze
@@ -285,6 +288,8 @@ class BasicRanSlice:
             tx_pac_size_sum = sub_merged_df[sub_merged_df["step_tx"]==step]["size_tx"].sum()
 
             res.loc[len(res)] = [i, step, sent_number, recv_number_total, recv_number_in_step, min_delay, max_delay, average_delay, min_rate, max_rate, average_rate, delivery_rate, throughput, tx_throughput, pac_size_sum, tx_pac_size_sum]
+
+            plot_data["UE_data"][i] = {"tx": tx_throughput, "rx": throughput}
 
         # Log report
         if self.logger and if_log:
