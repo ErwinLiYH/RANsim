@@ -349,7 +349,7 @@ class BasicRanSlice:
         if N_RAB != self.current_RB:
             for i in range(self.N_UEs):
                 self.logger.info(f"UE {self.ids['UEs'][i]} handover to eNodeB with RB {N_RAB}")
-                lte_helper.HandoverRequest(ns.Seconds(0), self.ue_devices.Get(i), self.enb_divices[self.current_RB].Get(0).GetObject["LteEnbNetDevice"](), self.enb_divices[N_RAB].Get(0).GetObject["LteEnbNetDevice"]())
+                lte_helper.HandoverRequest(ns.Seconds(0), self.ue_devices.Get(i), self.enb_divices[self.current_RB].Get(0), self.enb_divices[N_RAB].Get(0))
             self.changed_RB = True
         else:
             self.logger.info(f"Retain in eNodeB with RB {N_RAB}")
