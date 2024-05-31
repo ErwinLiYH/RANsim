@@ -1,6 +1,6 @@
 import time
 import warnings
-from typing import Any, Callable, Dict, Optional, Union
+from typing import Any, Callable, Dict, Optional, Union, Literal
 
 import gymnasium as gym
 import numpy as np
@@ -8,12 +8,32 @@ import torch
 
 from tianshou.data import (
     Batch,
-    ReplayBuffer,
+    ReplayBuffer,   
     to_numpy,
 )
 from tianshou.env import BaseVectorEnv
 from tianshou.policy import BasePolicy
 from tianshou.data import Collector
+
+import random
+
+class RepetitionGenerator:
+    def __init__(self, mode: Literal["random", "constant"], range=[2, 5], constant=4, seed=None):
+        assert mode in ["random", "constant"], f"mode should be 'random' or 'constant', got {mode}"
+        self.mode = mode
+        if mode == "random":
+            # Initialize the random number generator
+            self.random = random.Random(seed)
+            assert len(range) == 2, f"range should be a list of two integers, got {range}"
+            self.range = range
+        else:
+            self.constant = constant
+
+    def __call__(self):
+        if self.mode == "random":
+            return self.random.randint(*self.range)
+        else:
+            return self.constant
 
 class ActionReptCollector(Collector):
     def __init__(
@@ -23,10 +43,14 @@ class ActionReptCollector(Collector):
         buffer: Optional[ReplayBuffer] = None,
         preprocess_fn: Optional[Callable[..., Batch]] = None,
         exploration_noise: bool = False,
-        action_repetition: int = 0
+        action_repet_gen: RepetitionGenerator|None = None
     ):
         super().__init__(policy, env, buffer, preprocess_fn, exploration_noise)
-        self.action_repetition = action_repetition
+        self.action_repetition_generator = action_repet_gen
+        self.action_repetition = None
+        self.repetition_times = 0
+        if self.action_repetition_generator:
+            self.update_action_repetition()
     
     def collect(
         self,
@@ -74,7 +98,7 @@ class ActionReptCollector(Collector):
             last_state = self.data.policy.pop("hidden_state", None)
 
             # get the next action
-            if self.should_select_action(step_count):
+            if self.should_select_action():
                 if random:
                     try:
                         act_sample = [
@@ -101,6 +125,11 @@ class ActionReptCollector(Collector):
                     if self.exploration_noise:
                         act = self.policy.exploration_noise(act, self.data)
                     self.data.update(policy=policy, act=act)
+            
+            self.repetition_times += 1
+
+            if self.repetition_times == self.action_repetition:
+                self.update_action_repetition()
 
             # get bounded and remapped actions first (not saved into buffer)
             action_remap = self.policy.map_action(self.data.act)
@@ -220,8 +249,18 @@ class ActionReptCollector(Collector):
             "len_std": len_std,
         }
     
-    def should_select_action(self, step_count):
-        if self.action_repetition:
-            return step_count % self.action_repetition == 0
+    # def should_select_action(self, step_count):
+    #     if self.action_repetition:
+    #         return step_count % self.action_repetition == 0
+    #     else:
+    #         return True
+        
+    def should_select_action(self):
+        if self.action_repetition_generator:
+            return self.repetition_times == 0
         else:
             return True
+        
+    def update_action_repetition(self):
+        self.action_repetition = self.action_repetition_generator()
+        self.repetition_times = 0
