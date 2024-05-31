@@ -56,7 +56,7 @@ class OnOffSlice(base_slice.BasicRanSlice):
         return stat["throughput"]
     
 class EmbbSlice(base_slice.BasicRanSlice):
-    def __init__(self, N_UEs: int, CQI_info: Dict[int, int], SLAs: Dict[int, Dict[str, float]], initial_RB: int, onoff_configs: List[OnOffAppConfig], sink_config: SinkAppConfig, RB_resolution: int = 1, min_RB: int = 6, max_RB: int = 100, logger: None | logging.Logger = None, unlim_RB=True, unchange_terminate:int=0):
+    def __init__(self, N_UEs: int, CQI_info: Dict[int, int], SLAs: Dict[int, Dict[str, float]], initial_RB: int, onoff_configs: List[List[OnOffAppConfig]], sink_config: SinkAppConfig, RB_resolution: int = 1, min_RB: int = 6, max_RB: int = 100, logger: None | logging.Logger = None, unlim_RB=True, unchange_terminate:int=0):
         super().__init__(N_UEs, initial_RB, RB_resolution, min_RB, max_RB, logger, unlim_RB, unchange_terminate)
 
         self.SLAs = SLAs
@@ -68,6 +68,8 @@ class EmbbSlice(base_slice.BasicRanSlice):
         for i in CQI_info.values():
             total_n_cqi += i
         assert total_n_cqi == N_UEs, "The sum of CQI_info should be equal to N_UEs"
+        assert len(CQI_info) == len(SLAs), "The length of CQI_info should be equal to the length of SLAs"
+        assert len(onoff_configs) == N_UEs, "The length of onoff_configs should be equal to N_UEs"
 
         # Activate GBR/NGBR bearer for GBR UEs
         self.ueip_cqi = {}
@@ -82,7 +84,8 @@ class EmbbSlice(base_slice.BasicRanSlice):
 
         # Initialize onoff client on Remotehost to UE
         for i in range(self.N_UEs):
-            base_slice.InitRemoteOnOffApp(sink_config, onoff_configs[i], self.ue_ip_interface.GetAddress(i))
+            for j in onoff_configs[i]:
+                base_slice.InitRemoteOnOffApp(sink_config, j, self.ue_ip_interface.GetAddress(i))
 
         # Install sink app to all UEs
         for i in range(self.N_UEs):
