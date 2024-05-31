@@ -26,6 +26,7 @@ class SingelSliceStation(gym.Env):
         self.warmup_times = warmup_times
         self.logger = logger
         self.reset_result = None   # To avoid repeated reset, reset() will set this value to the result of reset, step() will clean this value
+        self.is_ready = False      # To avoid repeated warmup, warmup() will set this value to True, step() will set this value to False
 
         # time limit
         self.max_step = max_step
@@ -54,13 +55,17 @@ class SingelSliceStation(gym.Env):
         self.logger.info(f"Begin warmup for {self.warmup_times} times......")
         
         # Skip the off time of onoff application
+        n_skip_times = -1
         while True:
             obs = self.simple_step()
+            n_skip_times += 1
             if any([i != 0 for i in obs[2:]]):
                 break
+        if n_skip_times > 0:
+            self.logger.info(f"Skip {n_skip_times} times to avoid off time of onoff application.")
         
         if self.warmup_times >= 1:
-            ns.Simulator.Stop(ns.Seconds(self.step_time*self.warmup_times))
+            ns.Simulator.Stop(ns.Seconds(self.step_time*(self.warmup_times-1)))  # -1 here because it runs will run one step when check off time
             ns.Simulator.Run()
             base_slice.merge_records()
             self.Slice.stat_report(self.step_time*self.warmup_times, if_log=False)
