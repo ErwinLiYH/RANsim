@@ -4,10 +4,15 @@ import logging
 from collections import deque
 from ns import ns
 from .utils import SinkAppConfig, OnOffAppConfig, logging_helper, list_to_abbr_str
-
+import random
 
 # Current time
 current_time = 0
+
+# Set random seed
+r = random.Random()
+randint = r.randint(0,100000)
+ns.RngSeedManager.SetSeed(randint)
 
 # -------------------- DataFrames for recording Tx and Rx events --------------------
 
