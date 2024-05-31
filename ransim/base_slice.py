@@ -310,6 +310,7 @@ class BasicRanSlice:
 
             delays = sub_merged_df[sub_merged_df['_merge'] == 'both']["time_rx"]-sub_merged_df[sub_merged_df['_merge'] == 'both']["time_tx"]
             average_delay = delays.mean()
+            max_delay = delays.max()
 
             rates = sub_merged_df[sub_merged_df['_merge'] == 'both']["size_rx"] / delays
             average_rate = rates.mean()*8/1000/1000
@@ -326,6 +327,7 @@ class BasicRanSlice:
             for i in receive_info.index:
                 self.logger.info(f"Received {receive_info[i]} packet from step {i}.")
             self.logger.info(f"Avg delay: {average_delay} s")
+            self.logger.info(f"Max delay: {max_delay} s")
             self.logger.info(f"Delivery rate: {delivery_rate}")
             self.logger.info(f"Throughput: {throughput} Mb/s")
             self.logger.info(f"Tx Throughput: {tx_throughput} Mb/s")
