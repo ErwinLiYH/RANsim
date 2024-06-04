@@ -1,11 +1,16 @@
 import gymnasium as gym
+import os
 
 
 class WarpperForGym(gym.Env):
-    def __init__(self, env_name, max_step:int, unchange_terminate:int=0):
+    def __init__(self, env_name, max_step:int, unchange_terminate:int=0, plot:bool=False, root_path:str="./"):
         self.env_name = env_name
         self.max_step = max_step
         self.unchange_terminate = unchange_terminate
+        self.plot = plot
+        self.root_path = root_path
+        if not os.path.exists(self.root_path):
+            os.makedirs(self.root_path)
         self.station = self.init_station()
         self.observation_space = self.station.observation_space
         self.action_space = self.station.action_space

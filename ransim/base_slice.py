@@ -6,6 +6,11 @@ from ns import ns
 from .utils import SinkAppConfig, OnOffAppConfig, logging_helper, list_to_abbr_str
 import random
 
+import matplotlib.pyplot as plt
+
+import pickle
+
+
 # Current time
 current_time = 0
 
@@ -239,7 +244,7 @@ class BasicRanSlice:
         # Dataframe to store the performance per UE
         res = pd.DataFrame(columns=["UEIP", "step", "nSend", "nRecv", "nRecvStep", "minDelay", "maxDelay", "avgDelay", "minRate", "maxRate", "avgRate", "delivRate", "throughput", "tx_throughput", "pacSizeSum", "tx_pacSizeSum"])
 
-        plot_data = {"step": step, "UE_data": {}}
+        plot_data = {"step": step, "UE_data": {}, "RB": self.current_RB}
 
         # Analyze per UE
         for i in self.ue_ips:
@@ -289,6 +294,8 @@ class BasicRanSlice:
             res.loc[len(res)] = [i, step, sent_number, recv_number_total, recv_number_in_step, min_delay, max_delay, average_delay, min_rate, max_rate, average_rate, delivery_rate, throughput, tx_throughput, pac_size_sum, tx_pac_size_sum]
 
             plot_data["UE_data"][i] = {"tx": tx_throughput, "rx": throughput}
+
+        self.plot_data.append(plot_data)
 
         # Log report
         if self.logger and if_log:
@@ -434,3 +441,39 @@ class BasicRanSlice:
     
     def __str__(self) -> str:
         return self.get_info()
+
+    def plot(self, save_path:str):
+        # plot the sum of tx and rx throughput of each UE, and the RB in each step
+        fig, ax = plt.subplots()
+
+        # prepare data
+        steps = [i["step"] for i in self.plot_data]
+        tx_throughputs = [sum([j["tx"] for j in i["UE_data"].values()]) for i in self.plot_data]
+        rx_throughputs = [sum([j["rx"] for j in i["UE_data"].values()]) for i in self.plot_data]
+        RBs = [i["RB"] for i in self.plot_data]
+
+        # plot ax1
+        ax.plot(steps, tx_throughputs, label="Tx Throughput")
+        ax.plot(steps, rx_throughputs, label="Rx Throughput")
+        ax.set_xlabel('Steps')
+        ax.set_ylabel('Throughput (Mb/s)')
+
+        # plot ax2
+        ax2 = ax.twinx()
+        ax2.plot(steps, RBs, label="RB", color="yellow")
+        ax2.set_ylabel('number of RBs')
+
+        # show legend
+        ax.legend()
+        ax2.legend()
+
+        # save figure
+        fig.savefig(save_path)
+
+        return self.plot_data
+    
+    def clean_plot_data(self, save_path:str = None):
+        if save_path:
+            # save the plot data to a archive path
+            pickle.dump(self.plot_data, open(save_path, "wb"))
+        self.plot_data = []

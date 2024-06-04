@@ -11,9 +11,11 @@ from pettingzoo import ParallelEnv
 from typing import List
 import functools
 
+import os
+
 
 class SingelSliceStation(gym.Env):
-    def __init__(self, slice:base_slice.BasicRanSlice, max_step, step_time=0.05, warmup_times=10, logger:None|logging.Logger = None, ue_range=100):
+    def __init__(self, env_name:str, slice:base_slice.BasicRanSlice, max_step, step_time=0.05, warmup_times=10, logger:None|logging.Logger = None, ue_range=100, plot=False, root_path:str="./"):
         
         # Connect callback functions
         ns.Config.Connect("/NodeList/*/ApplicationList/*/$ns3::OnOffApplication/TxWithSeqTsSize", base_slice.TxWithSeqTsSize_callback_cpp)
@@ -30,6 +32,14 @@ class SingelSliceStation(gym.Env):
 
         # time limit
         self.max_step = max_step
+
+        # episode
+        self.episode = 0
+
+        # polt args
+        self.plot = plot
+        self.env_name = env_name
+        self.root_path = root_path
 
         # Action space and observation space
         self.action_space = spaces.Discrete(len(slice.candidate_RBs))
@@ -93,6 +103,12 @@ class SingelSliceStation(gym.Env):
             return self.reset_result
         else:    
             self.logger.info("Resetting......")
+
+            # Plot last episode
+            if self.episode != 0 and self.plot:
+                self.Slice.plot(os.path.join(self.root_path, f"{self.env_name}_{self.episode}.png"))
+                self.Slice.clean_plot_data(os.path.join(self.root_path, f"{self.env_name}_{self.episode}.pkl"))
+            self.episode += 1
 
             base_slice.clean_all_records()
 
