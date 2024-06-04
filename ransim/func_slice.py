@@ -151,10 +151,12 @@ class EmbbSlice(base_slice.BasicRanSlice):
         n_send = self.stat[5].sum()
         recv_avg_packet_size = self.stat[4].sum() / n_recv if n_recv != 0 else 0
         tx_avg_packet_size = self.stat[6].sum() / n_send if n_send != 0 else 0
-        # [if_changed, n_recv, avg_recv, avg_recv_packet_size, n_send, avg_send_packet_size]
+        SE = (self.stat[0].sum()*1000*1000) / (180000 * self.current_RB) # bps/Hz
+        # [current_RB, if_changed, n_recv, avg_recv_packet_size, n_send, avg_send_packet_size]
+        obs = [self.current_RB, SE*10, n_recv, recv_avg_packet_size, n_send, tx_avg_packet_size]
         if self.logger and if_log:
-            self.logger.info(f"Observation: {[self.current_RB, int(self.changed_RB), n_recv, recv_avg_packet_size, n_send, tx_avg_packet_size]}")
-        return np.array([self.current_RB, int(self.changed_RB), n_recv, recv_avg_packet_size, n_send, tx_avg_packet_size])
+            self.logger.info(f"Observation: {obs}")
+        return np.array(obs)
 
 class MmtcSlice(base_slice.BasicRanSlice):
     def __init__(self, N_UEs: int, SLA: Dict[str, float], initial_RB: int, onoff_config: OnOffAppConfig, sink_config: SinkAppConfig, RB_resolution: int = 1, min_RB: int = 6, max_RB: int = 100, logger: None | logging.Logger = None, unlim_RB=True, unchange_terminate:int=0):
