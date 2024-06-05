@@ -29,8 +29,8 @@ ns.Config.SetDefault ("ns3::LteRlcUm::MaxTxBufferSize", ns.UintegerValue (100 * 
 # ref: https://groups.google.com/g/ns-3-users/c/qbSu3pR9H5M, to improve throughput
 
 # Close error models
-# ns.Config.SetDefault("ns3::LteSpectrumPhy::CtrlErrorModelEnabled", ns.BooleanValue(0))
-# ns.Config.SetDefault("ns3::LteSpectrumPhy::DataErrorModelEnabled", ns.BooleanValue(0))
+ns.Config.SetDefault("ns3::LteSpectrumPhy::CtrlErrorModelEnabled", ns.BooleanValue(0))
+ns.Config.SetDefault("ns3::LteSpectrumPhy::DataErrorModelEnabled", ns.BooleanValue(0))
 
 TCP = "ns3::TcpSocketFactory"
 UDP = "ns3::UdpSocketFactory"
