@@ -36,8 +36,8 @@ class RecurrentActor(nn.Module):
         )
         self.model = nn.Sequential(
             nn.Linear(hidden_layer_size, 128), nn.ReLU(inplace=True),
-            # nn.Linear(128, 128), nn.ReLU(inplace=True),
-            # nn.Linear(128, 128), nn.ReLU(inplace=True),
+            nn.Linear(128, 128), nn.ReLU(inplace=True),
+            nn.Linear(128, 128), nn.ReLU(inplace=True),
             nn.Linear(128, np.prod(action_shape)),
         )
         self.to(self.device)
@@ -115,8 +115,8 @@ class RecurrentCritic(nn.Module):
         )
         self.model = nn.Sequential(
             nn.Linear(hidden_layer_size + int(np.prod(action_shape)), 128), nn.ReLU(inplace=True),
-            # nn.Linear(128, 128), nn.ReLU(inplace=True),
-            # nn.Linear(128, 128), nn.ReLU(inplace=True),
+            nn.Linear(128, 128), nn.ReLU(inplace=True),
+            nn.Linear(128, 128), nn.ReLU(inplace=True),
             nn.Linear(128, 1),
         )
         self.to(self.device)
