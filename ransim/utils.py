@@ -2,6 +2,7 @@ import logging
 import os
 from ns import ns
 from typing import Literal
+import numpy as np
 
 
 class logging_helper:
@@ -70,3 +71,50 @@ def list_to_abbr_str(lst, max_display=3):
                 res += str(lst[i])
         res += "]"
         return res
+
+# Running std mean updater, similar to Wellford's algorithm for online mean and variance calculation
+
+class RunningStdMeanUpdater(object):
+    # ref from https://github.com/openai/baselines/blob/ea25b9e8b234e6ee1bca43083f8f3cf974143998/baselines/common/running_mean_std.py
+    # and https://www.reddit.com/r/reinforcementlearning/comments/gocj1n/help_normalizing_observations_for_ppo/
+    # Similar to Welford's online algorithm
+    # https://github.com/openai/gym/blob/master/gym/wrappers/normalize.py
+    def __init__(self, shape, epsilon=1e-4):
+        self.mean = np.zeros(shape, 'float64')
+        self.var = np.ones(shape, 'float64')
+        self.count = epsilon
+
+    def update(self, x):
+        batch_mean = np.mean(x, axis=0)
+        batch_var = np.var(x, axis=0)
+        batch_count = x.shape[0]
+        self.update_from_moments(batch_mean, batch_var, batch_count)
+
+    def normalize(self, x, epsilon=1e-8, zero_mean=True):
+        if zero_mean:
+            return (x - self.mean) / np.sqrt(self.var + epsilon)
+        else:
+            return x / np.sqrt(self.var + epsilon)
+
+    def update_from_moments(self, batch_mean, batch_var, batch_count):
+        self.mean, self.var, self.count = update_mean_var_count_from_moments(
+            self.mean, self.var, self.count, batch_mean, batch_var, batch_count)
+        
+    def __str__(self) -> str:
+        return f"mean: {self.mean}, var: {self.var}, count: {self.count}"
+    
+    def __repr__(self) -> str:
+        return f"<Welford {self.__str__()}>"
+
+def update_mean_var_count_from_moments(mean, var, count, batch_mean, batch_var, batch_count):
+    delta = batch_mean - mean
+    tot_count = count + batch_count
+
+    new_mean = mean + delta * batch_count / tot_count
+    m_a = var * count
+    m_b = batch_var * batch_count
+    M2 = m_a + m_b + np.square(delta) * count * batch_count / tot_count
+    new_var = M2 / tot_count
+    new_count = tot_count
+
+    return new_mean, new_var, new_count
