@@ -6,3 +6,13 @@ build/
 dist/
 *.egg-info
 *.log
+test/
+exps/
+*.png
+*.pkl
+
+environment.yml
+set_environment.sh
+
+# temp
+ransim_mp_env/
