@@ -140,7 +140,8 @@ class EmbbSlice(base_slice.BasicRanSlice):
             reward = (SE**3)/4
         else: 
             # reward = -np.log(1-(sum([i for i in delay_violation_rate if i < 0]) + sum([i for i in throughput_violation_rate if i < 0])))
-            reward = sum([i for i in delay_violation_rate if i < 0]) + sum([i for i in throughput_violation_rate if i < 0])
+            total_violation_rate = sum([i for i in delay_violation_rate if i < 0]) + sum([i for i in throughput_violation_rate if i < 0])
+            reward = -10 + total_violation_rate
 
         if self.logger:
             self.logger.info(f"Reward: {reward}, SE: {SE}, SLA_violation: {SLA_violation}, delay_violation_rate: {delay_violation_rate}, throughput_violation_rate: {throughput_violation_rate}")
@@ -152,7 +153,11 @@ class EmbbSlice(base_slice.BasicRanSlice):
         n_send = self.stat[5].sum()
         recv_avg_packet_size = self.stat[4].sum() / n_recv if n_recv != 0 else 0
         tx_avg_packet_size = self.stat[6].sum() / n_send if n_send != 0 else 0
-        SE = (self.stat[0].sum()*1000*1000) / (180000 * self.current_RB) # bps/Hz
+        try:
+            SE = self.SE_list[-1]
+        except IndexError:
+            SE = (self.stat[0].sum()*1000*1000) / (180000 * self.current_RB) # bps/Hz
+    
         # [current_RB, if_changed, n_recv, avg_recv_packet_size, n_send, avg_send_packet_size]
         obs = [self.current_RB, SE*10, n_recv, recv_avg_packet_size, n_send, tx_avg_packet_size]
         if self.logger and if_log:
