@@ -62,26 +62,31 @@ class SingelSliceStation(gym.Env):
                 self.logger.info(line)
 
     def warmup(self):
-        self.logger.info(f"Begin warmup for {self.warmup_times} times......")
-        
-        # Skip the off time of onoff application
-        n_skip_times = -1
-        while True:
-            obs = self.simple_step()
-            n_skip_times += 1
-            if any([i != 0 for i in obs[2:]]):
-                break
-        if n_skip_times > 0:
-            self.logger.info(f"Skip {n_skip_times} times to avoid off time of onoff application.")
-        
-        if self.warmup_times >= 1:
-            ns.Simulator.Stop(ns.Seconds(self.step_time*(self.warmup_times-1)))  # -1 here because it runs will run one step when check off time
-            ns.Simulator.Run()
-            base_slice.merge_records()
-            self.Slice.stat_report(self.step_time*self.warmup_times, if_log=False)
-            base_slice.clean_all_records()
-            base_slice.current_time += self.step_time*self.warmup_times
+        if self.is_ready == False:
+            self.logger.info(f"Begin warmup for {self.warmup_times} times......")
+            
+            # Skip the off time of onoff application
+            n_skip_times = -1
+            while True:
+                obs = self.simple_step()
+                n_skip_times += 1
+                if any([i != 0 for i in obs[2:]]):
+                    break
+            if n_skip_times > 0:
+                self.logger.info(f"Skip {n_skip_times} times to avoid off time of onoff application.")
+            
+            if self.warmup_times >= 1:
+                ns.Simulator.Stop(ns.Seconds(self.step_time*(self.warmup_times-1)))  # -1 here because it runs will run one step when check off time
+                ns.Simulator.Run()
+                base_slice.merge_records()
+                self.Slice.stat_report(self.step_time*(self.warmup_times-1), if_log=False)
+                base_slice.clean_all_records()
+                base_slice.current_time += self.step_time*self.warmup_times
+            
             self.logger.info("Warmup finished.")
+            self.is_ready = True
+        else:
+            self.logger.info("Repeated warmup, skip this")
 
     def simple_step(self):
         # Don't do handover actions, just run simulation for one step and get observation
@@ -140,6 +145,10 @@ class SingelSliceStation(gym.Env):
         # clean reset result
         if self.reset_result:
             self.reset_result = None
+
+        # clean is_ready
+        if self.is_ready:
+            self.is_ready = False
 
         # Do handover actions
         if action is not None:
