@@ -113,6 +113,8 @@ class SingelSliceStation(gym.Env):
             if self.episode != 0 and self.plot:
                 self.Slice.plot(os.path.join(self.root_path, f"{self.env_name}_{self.episode}.png"))
                 self.Slice.clean_plot_data(os.path.join(self.root_path, f"{self.env_name}_{self.episode}.pkl"))
+            else:
+                self.Slice.clean_plot_data() # seems not needed
             self.episode += 1
 
             base_slice.clean_all_records()
