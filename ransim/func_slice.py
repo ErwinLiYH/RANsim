@@ -56,13 +56,18 @@ class OnOffSlice(base_slice.BasicRanSlice):
         return stat["throughput"]
     
 class EmbbSlice(base_slice.BasicRanSlice):
-    def __init__(self, N_UEs: int, CQI_info: Dict[int, int], SLAs: Dict[int, Dict[str, float]], initial_RB: int, onoff_configs: List[List[OnOffAppConfig]], sink_config: SinkAppConfig, RB_resolution: int = 1, min_RB: int = 6, max_RB: int = 100, logger: None | logging.Logger = None, unlim_RB=True, unchange_terminate:int=0):
+    def __init__(self, N_UEs: int, CQI_info: Dict[int, int], SLAs: Dict[int, Dict[str, float]], initial_RB: int, onoff_configs: List[List[OnOffAppConfig]], sink_config: SinkAppConfig, RB_resolution: int = 1, min_RB: int = 6, max_RB: int = 100, logger: None | logging.Logger = None, unlim_RB=True, unchange_terminate:int=0, no_termi = False):
         super().__init__(N_UEs, initial_RB, RB_resolution, min_RB, max_RB, logger, unlim_RB, unchange_terminate)
 
         self.SLAs = SLAs
         self.SLA_violation_list = []
+        self.SLA_violations = []
+        self.SLA_violation = 0
+        self.bad_SE = 0
 
         self.SE_list = []
+
+        self.no_termi = no_termi
 
         total_n_cqi = 0
         for i in CQI_info.values():
@@ -99,16 +104,17 @@ class EmbbSlice(base_slice.BasicRanSlice):
         stat = super().stat_report(step_time, "rx", if_log)
         # Default stat format:
         # ["UEIP", "step", "nSend", "nRecv", "nRecvStep", "minDelay", "maxDelay", "avgDelay", "minRate", "maxRate", "avgRate", "delivRate", "throughput", "tx_throughput", "pacSizeSum", "tx_pacSizeSum"]
-        stat = stat[["UEIP", "maxDelay", "throughput", "tx_throughput", "pacSizeSum", "nRecv", "nSend", "tx_pacSizeSum"]]
+        stat = stat[["UEIP", "maxDelay", "throughput", "tx_throughput", "pacSizeSum", "nRecv", "nRecvStep", "nSend", "tx_pacSizeSum"]]
         stat["CQI"] = stat["UEIP"].map(self.ueip_cqi)
         total_throughput = stat.groupby("CQI")["throughput"].sum()
         total_tx_throughput = stat.groupby("CQI")["tx_throughput"].sum()
         max_delay = stat.groupby("CQI")["maxDelay"].max()
         total_n_recv = stat.groupby("CQI")["nRecv"].sum()
+        total_n_recvstep = stat.groupby("CQI")["nRecvStep"].sum()
         total_pac_size = stat.groupby("CQI")["pacSizeSum"].sum()
         total_n_send = stat.groupby("CQI")["nSend"].sum()
         total_tx_pac_size = stat.groupby("CQI")["tx_pacSizeSum"].sum()
-        self.stat = (total_throughput, total_tx_throughput, max_delay, total_n_recv, total_pac_size, total_n_send, total_tx_pac_size)
+        self.stat = (total_throughput, total_tx_throughput, max_delay, total_n_recv, total_pac_size, total_n_send, total_tx_pac_size, total_n_recvstep)
 
     def get_reward(self):
         # Calculate SLA violation
@@ -125,11 +131,26 @@ class EmbbSlice(base_slice.BasicRanSlice):
                     SLA_violation = 1
             if self.stat[2][cqi] > sla["delay"] and delay_violation_rate[-1] < -THRESHOLD:
                 SLA_violation = 1
+        
+        n_recv_step = self.stat[7].sum()
+        n_send = self.stat[5].sum()
+        deliv_rate = n_recv_step/n_send if n_send!=0 else 0
+        if deliv_rate<0.95:
+            SLA_violation = 1
+
         self.SLA_violation_list.append((SLA_violation, delay_violation_rate, throughput_violation_rate))
+        self.SLA_violation = SLA_violation
+        self.logger.info(f"in get_rew() SLA_vio:{self.SLA_violation}")
+        self.SLA_violations.append(SLA_violation)
 
         # Calculate SE (spectral efficiency)
         SE = (self.stat[0].sum()*1000*1000) / (180000 * self.current_RB) # bps/Hz
         self.SE_list.append(SE)
+        if SE < 4:
+            self.bad_SE = 1
+        else:
+            self.bad_SE = 0
+        self.logger.info(f"in get_rew() bad_SE:{self.bad_SE}")
 
         # Bandwidth changing panalty
         # P = 1 if self.changed_RB else 0
@@ -141,14 +162,14 @@ class EmbbSlice(base_slice.BasicRanSlice):
             if SE < SE_threshold:
                 reward = -5
             else:
-                reward = 6*SE
+                reward = 2*SE
         else: 
             # reward = -np.log(1-(sum([i for i in delay_violation_rate if i < 0]) + sum([i for i in throughput_violation_rate if i < 0])))
             total_violation_rate = sum([i for i in delay_violation_rate if i < 0]) + sum([i for i in throughput_violation_rate if i < 0])
-            reward = -10 + total_violation_rate
+            reward = -10
 
         if self.logger:
-            self.logger.info(f"Reward: {reward}, SE: {SE}, SLA_violation: {SLA_violation}, delay_violation_rate: {delay_violation_rate}, throughput_violation_rate: {throughput_violation_rate}")
+            self.logger.info(f"Reward: {reward}, SE: {SE}, SLA_violation: {SLA_violation}, delay_violation_rate: {delay_violation_rate}, throughput_violation_rate: {throughput_violation_rate}, deliv_rate: {deliv_rate}")
 
         return reward
     
@@ -163,10 +184,26 @@ class EmbbSlice(base_slice.BasicRanSlice):
             SE = (self.stat[0].sum()*1000*1000) / (180000 * self.current_RB) # bps/Hz
     
         # [current_RB, if_changed, n_recv, avg_recv_packet_size, n_send, avg_send_packet_size]
-        obs = [self.current_RB, SE*10, n_recv, recv_avg_packet_size, n_send, tx_avg_packet_size]
+        obs = [self.current_RB, SE*10, n_recv, recv_avg_packet_size/10, n_send, tx_avg_packet_size/10]
         if self.logger and if_log:
             self.logger.info(f"Observation: {obs}")
         return np.array(obs)
+    
+    def get_terminated(self):
+        self.logger.info(f"in get_term() SLA_vio:{self.SLA_violation}")
+        self.logger.info(f"in get_term() bad_SE:{self.bad_SE}")
+        if self.no_termi:
+            unchange_terminated = self.get_unchange_terminated()
+            SLA_terminated = bool(self.SLA_violation)
+            bad_SE_terminated = bool(self.bad_SE)
+            self.logger.info(f"{unchange_terminated} {bad_SE_terminated} {SLA_terminated}")
+            return False
+        else:
+            unchange_terminated = self.get_unchange_terminated()
+            SLA_terminated = bool(self.SLA_violation)
+            bad_SE_terminated = bool(self.bad_SE)
+            self.logger.info(f"{unchange_terminated} {bad_SE_terminated} {SLA_terminated}")
+            return unchange_terminated or SLA_terminated or bad_SE_terminated
 
 class MmtcSlice(base_slice.BasicRanSlice):
     def __init__(self, N_UEs: int, SLA: Dict[str, float], initial_RB: int, onoff_config: OnOffAppConfig, sink_config: SinkAppConfig, RB_resolution: int = 1, min_RB: int = 6, max_RB: int = 100, logger: None | logging.Logger = None, unlim_RB=True, unchange_terminate:int=0):

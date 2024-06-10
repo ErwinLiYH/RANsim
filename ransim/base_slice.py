@@ -311,6 +311,7 @@ class BasicRanSlice:
             receive_info = sub_merged_df[sub_merged_df['_merge'] == 'both']['step_tx'].value_counts()
 
             try:
+                # recv_number_in_step error
                 delivery_rate = recv_number_in_step/sent_number
             except ZeroDivisionError:
                 delivery_rate = 1    # sending number could be zero
@@ -395,6 +396,9 @@ class BasicRanSlice:
         return res
     
     def get_terminated(self):
+        return self.get_unchange_terminated()
+        
+    def get_unchange_terminated(self):
         if self.unchange_terminate:
             if len(self.change_RB_queue) < self.unchange_terminate:
                 return False

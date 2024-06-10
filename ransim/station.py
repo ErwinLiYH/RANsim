@@ -162,13 +162,6 @@ class SingelSliceStation(gym.Env):
         ns.Simulator.Stop(ns.Seconds(self.step_time))
         ns.Simulator.Run()
 
-        # Get terminated
-        terminated = False
-        if base_slice.step >= self.max_step:
-            terminated = True
-        if self.Slice.get_terminated():
-            terminated = True
-
         # Get info
         info = self._get_info()
 
@@ -177,6 +170,14 @@ class SingelSliceStation(gym.Env):
         self.Slice.stat_report(self.step_time)
         reward = self.Slice.get_reward()
         obs = self.Slice.get_observation()
+
+        # Get terminated
+        terminated = False
+        if base_slice.step >= self.max_step:
+            terminated = True
+        if self.Slice.get_terminated():
+            terminated = True
+
         base_slice.step_records()
         base_slice.current_time += self.step_time
         
