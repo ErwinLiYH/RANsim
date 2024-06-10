@@ -150,3 +150,90 @@ class RecurrentCritic(nn.Module):
             obs = torch.cat([obs, act], dim=1)
         obs = self.model(obs)
         return obs
+    
+class SimpleActor(nn.Module):
+
+    def __init__(
+        self,
+        state_shape: Union[int, Sequence[int]],
+        action_shape: Union[int, Sequence[int]],
+        device: Union[str, int, torch.device] = "cpu",
+    ) -> None:
+        super().__init__()
+        self.device = device
+        self.model = nn.Sequential(
+            nn.Linear(state_shape, 64), nn.ReLU(inplace=True),
+            nn.Linear(64, 64), nn.ReLU(inplace=True),
+            nn.Linear(64, 64), nn.ReLU(inplace=True),
+        )
+        self.outputlayer = nn.Linear(64, np.prod(action_shape))
+        nn.init.orthogonal_(self.outputlayer.weight, gain=0.01)
+        nn.init.constant_(self.outputlayer.bias, 0)
+        self.model.apply(init_weights)
+        self.to(self.device)
+
+    def forward(
+        self,
+        obs: Union[np.ndarray, torch.Tensor],
+        state: Optional[Dict[str, torch.Tensor]] = None,
+        info: Dict[str, Any] = {},
+    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor]]:
+        """Mapping: obs -> flatten -> logits.
+
+        In the evaluation mode, `obs` should be with shape ``[bsz, dim]``; in the
+        training mode, `obs` should be with shape ``[bsz, len, dim]``. See the code
+        and comment for more detail.
+        """
+        obs = torch.as_tensor(
+            obs,
+            device=self.device,
+            dtype=torch.float32,
+        )
+        obs = self.model(obs)
+        obs = self.outputlayer(obs)
+        return obs, None
+    
+class SimpleCritic(nn.Module):
+
+    def __init__(
+        self,
+        state_shape: Sequence[int],
+        action_shape: Sequence[int] = [0],
+        device: Union[str, int, torch.device] = "cpu",
+    ) -> None:
+        super().__init__()
+        self.device = device
+        self.model = nn.Sequential(
+            nn.Linear(state_shape + int(np.prod(action_shape)), 64), nn.ReLU(inplace=True),
+            nn.Linear(64, 64), nn.ReLU(inplace=True),
+            nn.Linear(64, 64), nn.ReLU(inplace=True),
+            nn.Linear(64, 1),
+        )
+        self.to(self.device)
+
+    def forward(
+        self,
+        obs: Union[np.ndarray, torch.Tensor],
+        act: Optional[Union[np.ndarray, torch.Tensor]] = None,
+        info: Dict[str, Any] = {},
+    ) -> torch.Tensor:
+        obs = torch.as_tensor(
+            obs,
+            device=self.device,
+            dtype=torch.float32,
+        )
+        if act is not None:
+            act = torch.as_tensor(
+                act,
+                device=self.device,
+                dtype=torch.float32,
+            )
+            obs = torch.cat([obs, act], dim=1)
+        obs = self.model(obs)
+        return obs
+    
+def init_weights(m):
+    if isinstance(m, nn.Linear):
+        # nn.init.xavier_uniform_(m.weight)
+        nn.init.orthogonal_(m.weight, gain=np.sqrt(2))
+        nn.init.constant_(m.bias, 0)
