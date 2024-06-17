@@ -43,7 +43,7 @@ class SingelSliceStation(gym.Env):
 
         # Action space and observation space
         self.action_space = spaces.Discrete(len(slice.candidate_RBs))
-        self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(6,), dtype=float)
+        self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(3,), dtype=float)
 
         # Set location of eNodeBs and UEs
         self.Slice.set_enb_location(0)
