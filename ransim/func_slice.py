@@ -5,6 +5,8 @@ import logging
 from ns import ns
 import numpy as np
 
+from collections import deque
+
 
 THRESHOLD = 0.05
 
@@ -68,6 +70,8 @@ class EmbbSlice(base_slice.BasicRanSlice):
         self.SE_list = []
 
         self.no_termi = no_termi
+
+        self.obs_queue = deque(maxlen=3)
 
         total_n_cqi = 0
         for i in CQI_info.values():
@@ -189,9 +193,15 @@ class EmbbSlice(base_slice.BasicRanSlice):
         # [current_RB, if_changed, n_recv, avg_recv_packet_size, n_send, avg_send_packet_size]
         throughput = self.stat[1].sum()
         obs = [self.current_RB, SE*10, self.stat[1].sum()]
+        if len(self.obs_queue)==0:
+            for _ in range(3):
+                self.obs_queue.append(np.array(obs))
+        else:
+            self.obs_queue.append(np.array(obs))
+        obs = np.stack(self.obs_queue)
         if self.logger and if_log:
             self.logger.info(f"Observation: {obs}")
-        return np.array(obs)
+        return obs
     
     def get_terminated(self):
         self.logger.info(f"in get_term() SLA_vio:{self.SLA_violation}")
