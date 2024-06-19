@@ -189,6 +189,10 @@ class SimpleActor(nn.Module):
             device=self.device,
             dtype=torch.float32,
         )
+        if obs.dim() == 3:
+            obs = torch.flatten(obs, start_dim=1)
+        elif obs.dim() == 2:
+            obs = torch.flatten(obs, start_dim=0)
         obs = self.model(obs)
         obs = self.outputlayer(obs)
         return obs, None
