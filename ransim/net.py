@@ -24,15 +24,10 @@ class RecurrentActor(nn.Module):
         super().__init__()
         self.device = device
         self.nn = nn.LSTM(
-            input_size=hidden_layer_size,
+            input_size=state_shape,
             hidden_size=hidden_layer_size,
             num_layers=layer_num,
             batch_first=True,
-        )
-        # self.fc1 = nn.Linear(int(np.prod(state_shape)), hidden_layer_size)
-        self.fc1 = nn.Sequential(
-            nn.Linear(int(np.prod(state_shape)), hidden_layer_size),
-            nn.ReLU(inplace=True),
         )
         self.model = nn.Sequential(
             nn.Linear(hidden_layer_size, 128), nn.ReLU(inplace=True),
@@ -64,7 +59,6 @@ class RecurrentActor(nn.Module):
         # in evaluation phase.
         if len(obs.shape) == 2:
             obs = obs.unsqueeze(-2)
-        obs = self.fc1(obs)
         self.nn.flatten_parameters()
         if state is None:
             obs, (hidden, cell) = self.nn(obs)
