@@ -58,8 +58,8 @@ class OnOffSlice(base_slice.BasicRanSlice):
         return stat["throughput"]
     
 class EmbbSlice(base_slice.BasicRanSlice):
-    def __init__(self, N_UEs: int, CQI_info: Dict[int, int], SLAs: Dict[int, Dict[str, float]], initial_RB: int, onoff_configs: List[List[OnOffAppConfig]], sink_config: SinkAppConfig, RB_resolution: int = 1, min_RB: int = 6, max_RB: int = 100, logger: None | logging.Logger = None, unlim_RB=True, unchange_terminate:int=0, no_termi = False):
-        super().__init__(N_UEs, initial_RB, RB_resolution, min_RB, max_RB, logger, unlim_RB, unchange_terminate)
+    def __init__(self, N_UEs: int, CQI_info: Dict[int, int], SLAs: Dict[int, Dict[str, float]], initial_RB: int, onoff_configs: List[List[OnOffAppConfig]], sink_config: SinkAppConfig, RB_resolution: int = 1, min_RB: int = 6, max_RB: int = 100, logger: None | logging.Logger = None, unlim_RB=True, unchange_terminate:int=0, no_termi = False, action_process_fn=None):
+        super().__init__(N_UEs, initial_RB, RB_resolution, min_RB, max_RB, logger, unlim_RB, unchange_terminate, action_process_fn)
 
         self.SLAs = SLAs
         self.SLA_violation_list = []

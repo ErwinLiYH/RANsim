@@ -153,7 +153,7 @@ class BasicRanSlice:
     """
     RanSlice is the basic class for creating a slice in RAN simulation. It sets up all the UEs' and eNodeBs' nodes and devices.
     """
-    def __init__(self, N_UEs:int, initial_RB:int, RB_resolution:int = 1, min_RB:int = 6, max_RB:int = 100, logger:None|logging.Logger = None, unlim_RB=True, unchange_terminate:int=0):
+    def __init__(self, N_UEs:int, initial_RB:int, RB_resolution:int = 1, min_RB:int = 6, max_RB:int = 100, logger:None|logging.Logger = None, unlim_RB=True, unchange_terminate:int=0, action_process_fn = None):
         self.N_UEs = N_UEs
         self.last_RB = initial_RB
         self.current_RB = initial_RB
@@ -173,6 +173,7 @@ class BasicRanSlice:
         self.stat_df = pd.DataFrame(columns=["step", "nSend", "nRecv", "nRecvStep", "minDelay", "maxDelay", "avgDelay", "minRate", "maxRate", "avgRate", "delivRate", "throughput"])
         self.logger = logger
         self.name = None
+        self.action_process_fn = action_process_fn
 
         # Create eNodeB nodes
         self.enb_nodes = ns.NodeContainer()

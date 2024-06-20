@@ -156,6 +156,8 @@ class SingelSliceStation(gym.Env):
         if action is not None:
             action = action*self.Slice.RB_resolution + self.Slice.min_RB
             assert action in self.Slice.candidate_RBs, f"Action {action} is not in the action space {self.Slice.candidate_RBs}"
+            if self.Slice.action_process_fn:
+                action = self.Slice.action_process_fn(action)
             self.Slice.handoverTo(action)
         
         # Run simulation for one step
