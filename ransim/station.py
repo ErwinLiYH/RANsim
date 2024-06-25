@@ -194,16 +194,32 @@ class MultiSliceStation(gym.Env):
     pass
 
 class MarlStation(ParallelEnv):
-    def __init__(self, slice_lst:List[base_slice.BasicRanSlice], max_step, step_time=0.05, warmup_times=10, logger:None|logging.Logger = None, enb_distance=5000, ue_range=100):
+    def __init__(self, env_name:str, slice_lst:List[base_slice.BasicRanSlice], max_step, step_time=0.05, warmup_times=10, logger:None|logging.Logger = None, enb_distance=5000, ue_range=100, plot=False, root_path:str="./"):
         
         # Connect callback functions
         ns.Config.Connect("/NodeList/*/ApplicationList/*/$ns3::OnOffApplication/TxWithSeqTsSize", base_slice.TxWithSeqTsSize_callback_cpp)
         ns.Config.Connect("/NodeList/*/ApplicationList/*/$ns3::PacketSink/RxWithSeqTsSize", base_slice.RxWithSeqTsSize_callback_cpp)
+        ns.Config.Connect("/NodeList/*/DeviceList/*/LteUeRrc/HandoverEndOk", base_slice.NotifyHandoverEndOkUe_callback_cpp)
+        ns.Config.Connect("/NodeList/*/DeviceList/*/LteUeRrc/HandoverStart", base_slice.NotifyHandoverStartUe_callback_cpp)
 
         self.Slice_lst = slice_lst
         self.step_time = step_time
         self.warmup_times = warmup_times
         self.logger = logger
+
+        self.reset_result = None   # To avoid repeated reset, reset() will set this value to the result of reset, step() will clean this value
+        self.is_ready = False      # To avoid repeated warmup, warmup() will set this value to True, step() will set this value to False
+
+        # time limit
+        self.max_step = max_step
+
+        # episode
+        self.episode = 0
+
+        # polt args
+        self.plot = plot
+        self.env_name = env_name
+        self.root_path = root_path
 
         for i in range(len(slice_lst)):
             slice_lst[i].name = f"agent_{i}"
@@ -216,9 +232,6 @@ class MarlStation(ParallelEnv):
         # observation space
         # [if_changed, n_sent, avg_sent_size, n_recv, avg_recv_size, sum_other_n_sent, sum_other_avg_sent_size, sum_other_n_recv, sum_other_avg_recv_size]
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(11,), dtype=float)
-
-        # time limit
-        self.max_step = max_step
 
         # Set location of eNodeBs and UEs
         loc = 0
@@ -241,78 +254,111 @@ class MarlStation(ParallelEnv):
                     self.logger.info(line)
 
     @functools.lru_cache(maxsize=None)
-    def observation_space(self, agent):
+    def observation_space(self, agent: str):
         return self.observation_space
 
     @functools.lru_cache(maxsize=None)
     def action_space(self, agent: str):
         return self.action_space_map[agent]
-
-    def warmup(self):
-        self.logger.info(f"Begin warmup for {self.warmup_times} times......")
-        ns.Simulator.Stop(ns.Seconds(self.step_time*self.warmup_times))
+    
+    def simple_step(self):
+        # Don't do handover actions, just run simulation for one step and get observation
+        ns.Simulator.Stop(ns.Seconds(self.step_time))
         ns.Simulator.Run()
         base_slice.merge_records()
+        obs = {}
         for slice in self.Slice_lst:
-            slice.stat_report(self.step_time*self.warmup_times)
+            slice.stat_report(self.step_time, if_log=False)
+            obs[slice.name] = slice.get_observation(if_log=False)
         base_slice.clean_all_records()
-        base_slice.current_time += self.step_time*self.warmup_times
-        self.logger.info("Warmup finished.")
+        base_slice.current_time += self.step_time
+        return obs
+    
+    def warmup(self):
+        if self.is_ready == False:
+            self.logger.info(f"Begin warmup for {self.warmup_times} times......")
+            
+            # Skip the off time of onoff application
+            n_skip_times = -1
+            while True:
+                obs = self.simple_step()
+                n_skip_times += 1
+                if any([i != 0 for i in obs[:, -1]]):  # need change according to obs
+                    break
+            if n_skip_times > 0:
+                self.logger.info(f"Skip {n_skip_times} times to avoid off time of onoff application.")
+            
+            if self.warmup_times >= 1:
+                ns.Simulator.Stop(ns.Seconds(self.step_time*(self.warmup_times-1)))  # -1 here because it runs will run one step when check off time
+                ns.Simulator.Run()
+                base_slice.merge_records()
+                for slice in self.Slice_lst:
+                    slice.stat_report(self.step_time*(self.warmup_times-1), if_log=False)
+                base_slice.clean_all_records()
+                base_slice.current_time += self.step_time*self.warmup_times
+            
+            self.logger.info("Warmup finished.")
+            self.is_ready = True
+        else:
+            self.logger.info("Repeated warmup, skip this")
 
     def _get_info(self):
         return {name: {} for name in self.agent_names}
-    
-    def aggregate_obs(data: dict, num_slices: int):
-        aggregated_data = {}
-
-        for key, value in data.items():
-            sum_col1 = sum(val[0] for k, val in data.items() if k != key)
-            sum_col2 = sum(val[1] for k, val in data.items() if k != key)
-            sum_col4 = sum(val[3] for k, val in data.items() if k != key)
-            
-            weighted_avg_col3 = sum(val[2] * val[1] for k, val in data.items() if k != key) / sum_col2 if sum_col2 != 0 else 0
-            weighted_avg_col5 = sum(val[4] * val[3] for k, val in data.items() if k != key) / sum_col4 if sum_col4 != 0 else 0
-
-            aggregated_value = np.array([sum_col1, num_slices, sum_col2, weighted_avg_col3, sum_col4, weighted_avg_col5])
-            
-            concatenated_value = np.concatenate((value, aggregated_value))
-            
-            aggregated_data[key] = concatenated_value
-
-        return aggregated_data
 
     def reset(self):
-        self.logger.info("Resetting......")
+        if self.reset_result:
+            self.logger.info("Repeated reset, skip this")     # repeated reset, skip
+            return self.reset_result
+        else:    
+            self.logger.info("Resetting......")
 
-        base_slice.clean_all_records()
+            # Plot last episode
+            if self.episode != 0 and self.plot:
+                for slice in self.Slice_lst:
+                    slice.plot(os.path.join(self.root_path, f"{self.env_name}_{self.episode}.png"))
+                    slice.clean_plot_data(os.path.join(self.root_path, f"{self.env_name}_{self.episode}.pkl"))
+            else:
+                for slice in self.Slice_lst:
+                    slice.clean_plot_data() # seems not needed
+            self.episode += 1
 
-        for slice in self.Slice_lst:
-            random_RB = random.choice(slice.candidate_RBs)
-            slice.handoverTo(random_RB)
-            slice.clean_RB_record(random_RB)
+            base_slice.clean_all_records()
 
-        self.warmup()
-        for slice in self.Slice_lst:
-            slice.clean_stat()
+            for slice in self.Slice_lst:
+                random_RB = random.choice(slice.candidate_RBs)
+                slice.handoverTo(random_RB)
+                slice.clean_RB_record(random_RB)
 
-        # Run simulation for one step
-        ns.Simulator.Stop(ns.Seconds(self.step_time))
-        ns.Simulator.Run()
+            self.warmup()
+            for slice in self.Slice_lst:
+                slice.clean_stat()
 
-        obs_raw = {}
-        base_slice.merge_records()
-        for slice in self.Slice_lst:
-            slice.stat_report(self.step_time)
-            obs_raw[slice.name] = slice.get_observation()
-        base_slice.step_records()
-        base_slice.current_time += self.step_time
+            # Run simulation for one step
+            ns.Simulator.Stop(ns.Seconds(self.step_time))
+            ns.Simulator.Run()
 
-        obs = self.aggregate_obs(obs_raw, len(self.Slice_lst))
+            obs = {}
+            base_slice.merge_records()
+            for slice in self.Slice_lst:
+                slice.stat_report(self.step_time)
+                obs[slice.name] = slice.get_observation()
+            base_slice.step_records()
+            base_slice.current_time += self.step_time
 
-        self.logger.info("Reset finished.")
-        return obs, self._get_info()
+            self.logger.info("Reset finished.")
+
+            self.reset_result = (obs, self._get_info())
+            return obs, self._get_info()
     
     def step(self, action: dict):
+        # clean reset result
+        if self.reset_result:
+            self.reset_result = None
+
+        # clean is_ready
+        if self.is_ready:
+            self.is_ready = False
+
         # Do handover actions
         for slice in self.Slice_lst:
             action = action[slice.name]*slice.RB_resolution + slice.min_RB
@@ -335,15 +381,35 @@ class MarlStation(ParallelEnv):
 
         # Get rewards and local observations
         reward = {}
-        obs_raw = {}
+        obs = {}
         base_slice.merge_records()
         for slice in self.Slice_lst:
             slice.stat_report(self.step_time)
             reward[slice.name] = slice.get_reward()
-            obs_raw[slice.name] = slice.get_observation()
+            obs[slice.name] = slice.get_observation()
         base_slice.step_records()
         base_slice.current_time += self.step_time
-        
-        obs = self.aggregate_obs(obs_raw, len(self.Slice_lst))
 
         return obs, reward, terminated, False, info
+
+    def obs_process1(data: dict, num_slices: int):
+        aggregated_data = {}
+
+        for key, value in data.items():
+            sum_col1 = sum(val[0] for k, val in data.items() if k != key)
+            sum_col2 = sum(val[1] for k, val in data.items() if k != key)
+            sum_col4 = sum(val[3] for k, val in data.items() if k != key)
+            
+            weighted_avg_col3 = sum(val[2] * val[1] for k, val in data.items() if k != key) / sum_col2 if sum_col2 != 0 else 0
+            weighted_avg_col5 = sum(val[4] * val[3] for k, val in data.items() if k != key) / sum_col4 if sum_col4 != 0 else 0
+
+            aggregated_value = np.array([sum_col1, num_slices, sum_col2, weighted_avg_col3, sum_col4, weighted_avg_col5])
+            
+            concatenated_value = np.concatenate((value, aggregated_value))
+            
+            aggregated_data[key] = concatenated_value
+
+        return aggregated_data
+    
+    def obs_process2(obs):
+        pass
