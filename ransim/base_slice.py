@@ -228,6 +228,7 @@ class BasicRanSlice:
         self.candidate_RBs = list(range(min_RB, max_RB+1, RB_resolution))
         self.plot_data = []
         self.buffer_increase = None
+        self.droped_size = None
         self.ids = {
             "UEs": [],
             "eNodeBs": []
@@ -415,11 +416,15 @@ class BasicRanSlice:
         self.sub_buffer_record_df = buffer_record_df.loc[buffer_record_df.index.intersection(self.ids["eNodeBs"])]
         if self.sub_buffer_record_df.empty == False:
             sum_record = self.sub_buffer_record_df.sum()
-            self.buffer_increase = (sum_record['pdcp_tx']-sum_record['rlc_tx']-sum_record['rlc_drop'])*8/100 # kb
+            self.buffer_increase = (sum_record['pdcp_tx']-sum_record['rlc_tx']-sum_record['rlc_drop'])*8/1000 # kb
+            self.droped_size = sum_record['rlc_drop']*8/1000 # kb
             if self.logger and if_log:
-                self.logger.info(f"Buffer increase: {self.buffer_increase}")
+                self.logger.info(f"Buffer increase: {self.buffer_increase} kb")
+                self.logger.info(f"RLC drop packet size: {self.droped_size} kb")
         else:
             self.buffer_increase = None
+            self.droped_size = None
+
         return res
     
     def open_enb(self, RB, power=30):
