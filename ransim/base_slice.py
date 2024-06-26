@@ -50,76 +50,70 @@ RxWithSeqTsSize_callback_cpp = ns.cppyy.gbl.make_SeqTsSizeCallback_with_context(
 
 # -------------------- Callbacks of buffer recording --------------------
 
-# cellId2nodeId_map = {}
+cellId2nodeId_map = {}
 
-# connected_cell_id = []
+connected_cell_id = []
 
-# buffer_record_df = pd.DataFrame(columns=["pdcp_rx", "pdcp_tx", "rlc_rx", "rlc_tx", "rlc_drop"])
+buffer_record_df = pd.DataFrame(columns=["pdcp_rx", "pdcp_tx", "rlc_rx", "rlc_tx", "rlc_drop"])
 
-# def init_cellId_map(*maps:dict):
-#     for i in maps:
-#         cellId2nodeId_map.update(i)
+def init_cellId_map(*maps:dict):
+    for i in maps:
+        cellId2nodeId_map.update(i)
 
-# def insert_data(node_id:any, col:str, data:int):
-#     if node_id in buffer_record_df.index:
-#             buffer_record_df.loc[node_id, col] += data
-#     else:
-#         buffer_record_df.loc[node_id] = 0
-#         buffer_record_df.loc[node_id, col] = data
+def insert_data(node_id:any, col:str, data:int):
+    if node_id in buffer_record_df.index:
+            buffer_record_df.loc[node_id, col] += data
+    else:
+        buffer_record_df.loc[node_id] = 0
+        buffer_record_df.loc[node_id, col] = data
 
-# def clean_all_buffer_record():
-#     buffer_record_df.drop(buffer_record_df.index, inplace=True)
-#     buffer_record_df.reset_index(drop=True, inplace=True)
-#     global connected_cell_id
-#     connected_cell_id = []
+def clean_all_buffer_record():
+    buffer_record_df.drop(buffer_record_df.index, inplace=True)
+    buffer_record_df.reset_index(drop=True, inplace=True)
+    global connected_cell_id
+    connected_cell_id = []
 
-# def RxPdu_callback_Rlc(context, rnti, lcid, bytes, delay):
-#     node_id = int(context.split("/")[2])
-#     insert_data(node_id, "rlc_rx", bytes)
-#     buffer_record_df
+def RxPdu_callback_Rlc(context, rnti, lcid, bytes, delay):
+    node_id = int(context.split("/")[2])
+    insert_data(node_id, "rlc_rx", bytes)
     
-# def TxPdu_callback_Rlc(context, rnti, lcid, bytes):
-#     node_id = int(context.split("/")[2])
-#     insert_data(node_id, "rlc_tx", bytes)
-#     buffer_record_df
+def TxPdu_callback_Rlc(context, rnti, lcid, bytes):
+    node_id = int(context.split("/")[2])
+    insert_data(node_id, "rlc_tx", bytes)
 
-# def RxPdu_callback_Pdcp(context, rnti, lcid, bytes, delay):
-#     node_id = int(context.split("/")[2])
-#     insert_data(node_id, "pdcp_rx", bytes)
-#     buffer_record_df
+def RxPdu_callback_Pdcp(context, rnti, lcid, bytes, delay):
+    node_id = int(context.split("/")[2])
+    insert_data(node_id, "pdcp_rx", bytes)
     
-# def TxPdu_callback_Pdcp(context, rnti, lcid, bytes):
-#     node_id = int(context.split("/")[2])
-#     insert_data(node_id, "pdcp_tx", bytes)
-#     buffer_record_df
+def TxPdu_callback_Pdcp(context, rnti, lcid, bytes):
+    node_id = int(context.split("/")[2])
+    insert_data(node_id, "pdcp_tx", bytes)
 
-# def DropPac_callback(context, packet):
-#     node_id = int(context.split("/")[2])
-#     insert_data(node_id, "rlc_drop", packet.GetSize())
-#     print(buffer_record_df)
+def DropPac_callback(context, packet):
+    node_id = int(context.split("/")[2])
+    insert_data(node_id, "rlc_drop", packet.GetSize())
 
-# RxPdu_Rlc_callback_cpp = ns.cppyy.gbl.make_RxPduCallback(RxPdu_callback_Rlc)
-# RxPdu_Pdcp_callback_cpp = ns.cppyy.gbl.make_RxPduCallback(RxPdu_callback_Pdcp)
-# TxPdu_Rlc_callback_cpp = ns.cppyy.gbl.make_TxPduCallback(TxPdu_callback_Rlc)
-# TxPdu_Pdcp_callback_cpp = ns.cppyy.gbl.make_TxPduCallback(TxPdu_callback_Pdcp)
-# DropPac_callback_cpp = ns.cppyy.gbl.make_DropPacCallback(DropPac_callback)
+RxPdu_Rlc_callback_cpp = ns.cppyy.gbl.make_RxPduCallback(RxPdu_callback_Rlc)
+RxPdu_Pdcp_callback_cpp = ns.cppyy.gbl.make_RxPduCallback(RxPdu_callback_Pdcp)
+TxPdu_Rlc_callback_cpp = ns.cppyy.gbl.make_TxPduCallback(TxPdu_callback_Rlc)
+TxPdu_Pdcp_callback_cpp = ns.cppyy.gbl.make_TxPduCallback(TxPdu_callback_Pdcp)
+DropPac_callback_cpp = ns.cppyy.gbl.make_DropPacCallback(DropPac_callback)
 
-# def connect_buffer_record_callbacks(cellId, c):
-#     if cellId not in connected_cell_id:
-#         print(cellId, cellId2nodeId_map[cellId], c)
-#         ns.Config.Connect(f"NodeList/{cellId2nodeId_map[cellId]}/DeviceList/*/$ns3::LteEnbNetDevice/LteEnbRrc/UeMap/*/DataRadioBearerMap/*/LtePdcp/RxPDU", RxPdu_Pdcp_callback_cpp)
-#         ns.Config.Connect(f"NodeList/{cellId2nodeId_map[cellId]}/DeviceList/*/$ns3::LteEnbNetDevice/LteEnbRrc/UeMap/*/DataRadioBearerMap/*/LtePdcp/TxPDU", TxPdu_Pdcp_callback_cpp)
+def connect_buffer_record_callbacks(cellId, c):
+    if cellId not in connected_cell_id:
+        ns.Config.Connect(f"NodeList/{cellId2nodeId_map[cellId]}/DeviceList/*/$ns3::LteEnbNetDevice/LteEnbRrc/UeMap/*/DataRadioBearerMap/*/LtePdcp/RxPDU", RxPdu_Pdcp_callback_cpp)
+        ns.Config.Connect(f"NodeList/{cellId2nodeId_map[cellId]}/DeviceList/*/$ns3::LteEnbNetDevice/LteEnbRrc/UeMap/*/DataRadioBearerMap/*/LtePdcp/TxPDU", TxPdu_Pdcp_callback_cpp)
 
-#         ns.Config.Connect(f"NodeList/{cellId2nodeId_map[cellId]}/DeviceList/*/$ns3::LteEnbNetDevice/LteEnbRrc/UeMap/*/DataRadioBearerMap/*/LteRlc/RxPDU", RxPdu_Rlc_callback_cpp)
-#         ns.Config.Connect(f"NodeList/{cellId2nodeId_map[cellId]}/DeviceList/*/$ns3::LteEnbNetDevice/LteEnbRrc/UeMap/*/DataRadioBearerMap/*/LteRlc/TxPDU", TxPdu_Rlc_callback_cpp)
-#         ns.Config.Connect(f"NodeList/{cellId2nodeId_map[cellId]}/DeviceList/*/$ns3::LteEnbNetDevice/LteEnbRrc/UeMap/*/DataRadioBearerMap/*/LteRlc/TxDrop", DropPac_callback_cpp)
-#         connected_cell_id.append(cellId)
+        ns.Config.Connect(f"NodeList/{cellId2nodeId_map[cellId]}/DeviceList/*/$ns3::LteEnbNetDevice/LteEnbRrc/UeMap/*/DataRadioBearerMap/*/LteRlc/RxPDU", RxPdu_Rlc_callback_cpp)
+        ns.Config.Connect(f"NodeList/{cellId2nodeId_map[cellId]}/DeviceList/*/$ns3::LteEnbNetDevice/LteEnbRrc/UeMap/*/DataRadioBearerMap/*/LteRlc/TxPDU", TxPdu_Rlc_callback_cpp)
+        ns.Config.Connect(f"NodeList/{cellId2nodeId_map[cellId]}/DeviceList/*/$ns3::LteEnbNetDevice/LteEnbRrc/UeMap/*/DataRadioBearerMap/*/LteRlc/TxDrop", DropPac_callback_cpp)
+        connected_cell_id.append(cellId)
 
 # -------------------- Callbacks of handover events --------------------
 
 def NotifyHandoverEndOkUe_callback(contex, imis, cellId, rnti):
     CALLBACK_LOGGER.debug(f"At {ns.Simulator.Now().GetSeconds():.5f}s ,{contex}, RNTI {rnti} handover to cell {cellId} is successful")
-    # connect_buffer_record_callbacks(cellId, contex)
+    connect_buffer_record_callbacks(cellId, contex)
 
 def NotifyHandoverStartUe_callback(contex, imis, cellId, rnti, targetCellId):
     CALLBACK_LOGGER.debug(f"At {ns.Simulator.Now().GetSeconds():.5f}s ,{contex}, RNTI {rnti} start handover to cell {targetCellId}")
@@ -233,7 +227,7 @@ class BasicRanSlice:
         self.RB_resolution = RB_resolution
         self.candidate_RBs = list(range(min_RB, max_RB+1, RB_resolution))
         self.plot_data = []
-        # self.buffer_increase = None
+        self.buffer_increase = None
         self.ids = {
             "UEs": [],
             "eNodeBs": []
@@ -263,7 +257,7 @@ class BasicRanSlice:
 
         # Install eNodeB devices
         self.enb_divices = {}  # key: RB, val: NetDeviceContainer
-        # self.cellId2nodeId = {}
+        self.cellId2nodeId = {}
 
         if unlim_RB:
             index = 0
@@ -271,7 +265,7 @@ class BasicRanSlice:
                 lte_helper.SetEnbDeviceAttribute("UlBandwidth", ns.UintegerValue(i))
                 lte_helper.SetEnbDeviceAttribute("DlBandwidth", ns.UintegerValue(i))
                 self.enb_divices[i] = lte_helper.InstallEnbDevice(self.enb_nodes.Get(index))
-                # self.cellId2nodeId[self.enb_divices[i].Get(0).GetObject["LteEnbNetDevice"]().GetCellIds()[0]] = self.enb_nodes.Get(index).GetId()
+                self.cellId2nodeId[self.enb_divices[i].Get(0).GetObject["LteEnbNetDevice"]().GetCellIds()[0]] = self.enb_nodes.Get(index).GetId()
                 index+=1
         else:
             index = 0
@@ -279,7 +273,7 @@ class BasicRanSlice:
                 lte_helper.SetEnbDeviceAttribute("UlBandwidth", ns.UintegerValue(i))
                 lte_helper.SetEnbDeviceAttribute("DlBandwidth", ns.UintegerValue(i))
                 self.enb_divices[i] = lte_helper.InstallEnbDevice(self.enb_nodes.Get(index))
-                # self.cellId2nodeId[self.enb_divices[i].Get(0).GetObject["LteEnbNetDevice"]().GetCellIds()[0]] = self.enb_nodes.Get(index).GetId()
+                self.cellId2nodeId[self.enb_divices[i].Get(0).GetObject["LteEnbNetDevice"]().GetCellIds()[0]] = self.enb_nodes.Get(index).GetId()
                 index+=1
 
         # Install UE devices
@@ -417,14 +411,14 @@ class BasicRanSlice:
 
         # Analyze RLC layer
         # print("b rlc an")
-        # sub_buffer_record_df = buffer_record_df.loc[buffer_record_df.index.intersection(self.ids["eNodeBs"])]
-        # if sub_buffer_record_df.empty == False:
-        #     sum_record = sub_buffer_record_df.sum()
-        #     self.buffer_increase = (sum_record['pdcp_tx']-sum_record['rlc_tx']-sum_record['rlc_drop'])*8/100 # kb
-        #     if self.logger and if_log:
-        #         self.logger.info(f"Buffer increase: {self.buffer_increase}")
-        # else:
-        #     self.buffer_increase = None
+        sub_buffer_record_df = buffer_record_df.loc[buffer_record_df.index.intersection(self.ids["eNodeBs"])]
+        if sub_buffer_record_df.empty == False:
+            sum_record = sub_buffer_record_df.sum()
+            self.buffer_increase = (sum_record['pdcp_tx']-sum_record['rlc_tx']-sum_record['rlc_drop'])*8/100 # kb
+            if self.logger and if_log:
+                self.logger.info(f"Buffer increase: {self.buffer_increase}")
+        else:
+            self.buffer_increase = None
         # print("e rlc an")
         return res
     

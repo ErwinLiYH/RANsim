@@ -136,7 +136,7 @@ class SingelSliceStation(gym.Env):
             self.Slice.stat_report(self.step_time)
             obs = self.Slice.get_observation()
             base_slice.step_records()
-            # base_slice.clean_all_buffer_record()
+            base_slice.clean_all_buffer_record()
             base_slice.current_time += self.step_time
 
             self.logger.info("Reset finished.")
@@ -182,7 +182,7 @@ class SingelSliceStation(gym.Env):
             terminated = True
 
         base_slice.step_records()
-        # base_slice.clean_all_buffer_record()
+        base_slice.clean_all_buffer_record()
         base_slice.current_time += self.step_time
         
         # return [observation, reward, terminated, truncated, info] according to gym.Env v26

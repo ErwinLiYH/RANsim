@@ -21,22 +21,22 @@ Callback<void, std::string, uint64_t, uint16_t, uint16_t, uint16_t>
 make_NotifyHandoverStartUeCallback(void(*func)(std::string, uint64_t, uint16_t, uint16_t, uint16_t)){
     return MakeCallback(func);
 }
+
+Callback<void, std::string, uint16_t, uint8_t, uint32_t, uint64_t>
+make_RxPduCallback(void(*func)(std::string, uint16_t, uint8_t, uint32_t, uint64_t)){
+    return MakeCallback(func);
+}
+
+Callback<void, std::string, uint16_t, uint8_t, uint32_t>
+make_TxPduCallback(void(*func)(std::string, uint16_t, uint8_t, uint32_t)){
+    return MakeCallback(func);
+}
+
+Callback<void, std::string, Ptr< const Packet >>
+make_DropPacCallback(void(*func)(std::string, Ptr< const Packet >)){
+    return MakeCallback(func);
+}
 """)
-
-# Callback<void, std::string, uint16_t, uint8_t, uint32_t, uint64_t>
-# make_RxPduCallback(void(*func)(std::string, uint16_t, uint8_t, uint32_t, uint64_t)){
-#     return MakeCallback(func);
-# }
-
-# Callback<void, std::string, uint16_t, uint8_t, uint32_t>
-# make_TxPduCallback(void(*func)(std::string, uint16_t, uint8_t, uint32_t)){
-#     return MakeCallback(func);
-# }
-
-# Callback<void, std::string, Ptr< const Packet >>
-# make_DropPacCallback(void(*func)(std::string, Ptr< const Packet >)){
-#     return MakeCallback(func);
-# }
 
 ns.Config.SetDefault("ns3::LteEnbRrc::DefaultTransmissionMode", ns.UintegerValue(2))
 # MIMO Spatial Multiplexity Open Loop
