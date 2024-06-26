@@ -237,6 +237,8 @@ class BasicRanSlice:
         self.logger = logger
         self.name = None
         self.action_process_fn = action_process_fn
+        self.accumulated_reward = 0
+        self.accumulated_SLA_violation = 0
 
         # Create eNodeB nodes
         self.enb_nodes = ns.NodeContainer()
@@ -528,10 +530,10 @@ class BasicRanSlice:
         fig, ax = plt.subplots()
 
         # prepare data
-        steps = [i["step"] for i in self.plot_data]
-        tx_throughputs = [sum([j["tx"] for j in i["UE_data"].values()]) for i in self.plot_data]
-        rx_throughputs = [sum([j["rx"] for j in i["UE_data"].values()]) for i in self.plot_data]
-        RBs = [i["RB"] for i in self.plot_data]
+        steps = [i["step"] for i in self.plot_data if i["step"]!=0]
+        tx_throughputs = [sum([j["tx"] for j in i["UE_data"].values()]) for i in self.plot_data if i["step"]!=0]
+        rx_throughputs = [sum([j["rx"] for j in i["UE_data"].values()]) for i in self.plot_data if i["step"]!=0]
+        RBs = [i["RB"] for i in self.plot_data if i["step"]!=0]
 
         # plot ax1
         ax.plot(steps, tx_throughputs, label="Tx Throughput")
@@ -543,6 +545,9 @@ class BasicRanSlice:
         ax2 = ax.twinx()
         ax2.plot(steps, RBs, label="RB", color="yellow")
         ax2.set_ylabel('number of RBs')
+
+        # add title
+        fig.suptitle(f"Rew {self.accumulated_reward}, SLA_vio {self.accumulated_SLA_violation}")
 
         # show legend
         ax.legend()
@@ -556,5 +561,12 @@ class BasicRanSlice:
     def clean_plot_data(self, save_path:str = None):
         if save_path:
             # save the plot data to a archive path
-            pickle.dump(self.plot_data, open(save_path, "wb"))
+            save_data = {
+                "plot_data": self.plot_data,
+                "acc_SLA_vio": self.accumulated_SLA_violation,
+                "acc_rew": self.accumulated_reward
+            }
+            pickle.dump(save_data, open(save_path, "wb"))
         self.plot_data = []
+        self.accumulated_SLA_violation = 0
+        self.accumulated_reward = 0

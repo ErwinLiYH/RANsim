@@ -146,6 +146,7 @@ class EmbbSlice(base_slice.BasicRanSlice):
         self.SLA_violation = SLA_violation
         self.logger.info(f"SLA_vio:{bool(self.SLA_violation)}")
         self.SLA_violations.append(SLA_violation)
+        self.accumulated_SLA_violation += SLA_violation
 
         # Calculate SE (spectral efficiency)
         SE = (self.stat[0].sum()*1000*1000) / (180000 * self.current_RB) # bps/Hz
@@ -177,6 +178,8 @@ class EmbbSlice(base_slice.BasicRanSlice):
 
         if self.logger:
             self.logger.info(f"Reward: {reward}, SE: {SE}, SLA_violation: {SLA_violation}, delay_violation_rate: {delay_violation_rate}, throughput_violation_rate: {throughput_violation_rate}, deliv_rate: {deliv_rate}")
+
+        self.accumulated_reward += reward
 
         return reward
     
