@@ -410,16 +410,14 @@ class BasicRanSlice:
             self.logger.info(f"Avg Rate: {average_rate} Mb/s")
 
         # Analyze RLC layer
-        # print("b rlc an")
-        sub_buffer_record_df = buffer_record_df.loc[buffer_record_df.index.intersection(self.ids["eNodeBs"])]
-        if sub_buffer_record_df.empty == False:
-            sum_record = sub_buffer_record_df.sum()
+        self.sub_buffer_record_df = buffer_record_df.loc[buffer_record_df.index.intersection(self.ids["eNodeBs"])]
+        if self.sub_buffer_record_df.empty == False:
+            sum_record = self.sub_buffer_record_df.sum()
             self.buffer_increase = (sum_record['pdcp_tx']-sum_record['rlc_tx']-sum_record['rlc_drop'])*8/100 # kb
             if self.logger and if_log:
                 self.logger.info(f"Buffer increase: {self.buffer_increase}")
         else:
             self.buffer_increase = None
-        # print("e rlc an")
         return res
     
     def open_enb(self, RB, power=30):

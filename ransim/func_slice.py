@@ -144,7 +144,7 @@ class EmbbSlice(base_slice.BasicRanSlice):
 
         self.SLA_violation_list.append((SLA_violation, delay_violation_rate, throughput_violation_rate))
         self.SLA_violation = SLA_violation
-        self.logger.info(f"in get_rew() SLA_vio:{self.SLA_violation}")
+        self.logger.info(f"SLA_vio:{bool(self.SLA_violation)}")
         self.SLA_violations.append(SLA_violation)
 
         # Calculate SE (spectral efficiency)
@@ -154,7 +154,7 @@ class EmbbSlice(base_slice.BasicRanSlice):
             self.bad_SE = 1
         else:
             self.bad_SE = 0
-        self.logger.info(f"in get_rew() bad_SE:{self.bad_SE}")
+        self.logger.info(f"bad_SE:{bool(self.bad_SE)}")
 
         # Bandwidth changing panalty
         # P = 1 if self.changed_RB else 0
@@ -204,13 +204,7 @@ class EmbbSlice(base_slice.BasicRanSlice):
         return obs
     
     def get_terminated(self):
-        self.logger.info(f"in get_term() SLA_vio:{self.SLA_violation}")
-        self.logger.info(f"in get_term() bad_SE:{self.bad_SE}")
         if self.no_termi:
-            unchange_terminated = self.get_unchange_terminated()
-            SLA_terminated = bool(self.SLA_violation)
-            bad_SE_terminated = bool(self.bad_SE)
-            self.logger.info(f"{unchange_terminated} {bad_SE_terminated} {SLA_terminated}")
             return False
         else:
             unchange_terminated = self.get_unchange_terminated()
