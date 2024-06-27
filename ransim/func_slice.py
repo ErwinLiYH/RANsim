@@ -195,7 +195,9 @@ class EmbbSlice(base_slice.BasicRanSlice):
     
         # [current_RB, if_changed, n_recv, avg_recv_packet_size, n_send, avg_send_packet_size]
         throughput = self.stat[1].sum()
-        obs = [self.current_RB, SE*10, self.stat[1].sum(), 0.1*self.buffer_increase, 0.1*self.droped_size]
+        buffer_increase = 0.1*self.buffer_increase if self.buffer_increase != None else 0
+        droped_size = 0.1*self.droped_size if self.droped_size != None else 0
+        obs = [self.current_RB, SE*10, self.stat[1].sum(), buffer_increase, droped_size]
         if len(self.obs_queue)==0:
             for _ in range(3):
                 self.obs_queue.append(np.array(obs))
