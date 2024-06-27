@@ -38,14 +38,19 @@ make_DropPacCallback(void(*func)(std::string, Ptr< const Packet >)){
 }
 """)
 
-ns.Config.SetDefault("ns3::LteEnbRrc::DefaultTransmissionMode", ns.UintegerValue(2))
 # MIMO Spatial Multiplexity Open Loop
-ns.Config.SetDefault ("ns3::LteRlcUm::MaxTxBufferSize", ns.UintegerValue (10 * 1024))
+ns.Config.SetDefault("ns3::LteEnbRrc::DefaultTransmissionMode", ns.UintegerValue(2))
+
+# Set the buffer size of the RLC layer
+ns.Config.SetDefault ("ns3::LteRlcUm::MaxTxBufferSize", ns.UintegerValue (100 * 1024))
 # ref: https://groups.google.com/g/ns-3-users/c/qbSu3pR9H5M, to improve throughput
 
 # Close error models
 ns.Config.SetDefault("ns3::LteSpectrumPhy::CtrlErrorModelEnabled", ns.BooleanValue(0))
 ns.Config.SetDefault("ns3::LteSpectrumPhy::DataErrorModelEnabled", ns.BooleanValue(0))
+
+# The delay in TTI units that occurs between a scheduling decision in the MAC and the actual start of the transmission by the PHY. Initial value: 2.
+ns.Config.SetDefault("ns3::LteEnbPhy::MacToChannelDelay", ns.UintegerValue(1))
 
 TCP = "ns3::TcpSocketFactory"
 UDP = "ns3::UdpSocketFactory"
