@@ -70,7 +70,7 @@ class SingelSliceStation(gym.Env):
             while True:
                 obs = self.simple_step()
                 n_skip_times += 1
-                if any([i != 0 for i in obs[:, -1]]):
+                if any([i != 0 for i in obs[:, -3]]):
                     break
             if n_skip_times > 0:
                 self.logger.info(f"Skip {n_skip_times} times to avoid off time of onoff application.")
