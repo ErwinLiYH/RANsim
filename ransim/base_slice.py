@@ -240,6 +240,7 @@ class BasicRanSlice:
         self.action_process_fn = action_process_fn
         self.accumulated_reward = 0
         self.accumulated_SLA_violation = 0
+        self.accumulated_reconfig_times = 0
 
         # Create eNodeB nodes
         self.enb_nodes = ns.NodeContainer()
@@ -443,6 +444,7 @@ class BasicRanSlice:
                 self.logger.info(f"UE {self.ids['UEs'][i]} handover to eNodeB with RB {N_RAB}")
                 lte_helper.HandoverRequest(ns.Seconds(0), self.ue_devices.Get(i), self.enb_divices[self.current_RB].Get(0), self.enb_divices[N_RAB].Get(0))
             self.changed_RB = True
+            self.accumulated_reconfig_times += 1
         else:
             self.logger.info(f"Retain in eNodeB with RB {N_RAB}")
             self.changed_RB = False
@@ -552,7 +554,7 @@ class BasicRanSlice:
         ax2.set_ylabel('number of RBs')
 
         # add title
-        fig.suptitle(f"Rew {self.accumulated_reward}, SLA_vio {self.accumulated_SLA_violation}")
+        fig.suptitle(f"Rew {self.accumulated_reward}, SLA_vio {self.accumulated_SLA_violation}, reconfig {self.accumulated_reconfig_times}")
 
         # show legend
         ax.legend()
@@ -569,9 +571,11 @@ class BasicRanSlice:
             save_data = {
                 "plot_data": self.plot_data,
                 "acc_SLA_vio": self.accumulated_SLA_violation,
-                "acc_rew": self.accumulated_reward
+                "acc_rew": self.accumulated_reward,
+                "acc_reconfig": self.accumulated_reconfig_times
             }
             pickle.dump(save_data, open(save_path, "wb"))
         self.plot_data = []
         self.accumulated_SLA_violation = 0
         self.accumulated_reward = 0
+        self.accumulated_reconfig_times = 0
