@@ -166,13 +166,14 @@ class SingelSliceStation(gym.Env):
         ns.Simulator.Run()
 
         # Get info
-        info = self._get_info()
+        # info = self._get_info()
 
-        # Get rewards and local observations
+        # Get rewards and local observations and info
         base_slice.merge_records()
         self.Slice.stat_report(self.step_time)
         reward = self.Slice.get_reward()
         obs = self.Slice.get_observation()
+        info = self.Slice.get_rl_info()
 
         # Get terminated
         terminated = False

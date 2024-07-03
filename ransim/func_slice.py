@@ -183,6 +183,13 @@ class EmbbSlice(base_slice.BasicRanSlice):
 
         return reward
     
+    def get_rl_info(self):
+        return {
+            "SLA_violation": self.SLA_violation,
+            "bad_SE": self.bad_SE,
+            "changed_RB": self.changed_RB
+            }
+    
     def get_observation(self, if_log=True):
         n_recv = self.stat[3].sum()
         n_send = self.stat[5].sum()
