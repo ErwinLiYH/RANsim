@@ -179,6 +179,7 @@ class EmbbSlice(base_slice.BasicRanSlice):
         # low traffic fix: if traffic is low, and the min_RB is used, but the SE is sill bad, give a bonus
         if self.current_RB == self.min_RB and self.bad_SE:
             reward = 1
+            self.bad_SE = 0
 
         if self.logger:
             self.logger.info(f"Reward: {reward}, SE: {SE}, SLA_violation: {SLA_violation}, delay_violation_rate: {delay_violation_rate}, throughput_violation_rate: {throughput_violation_rate}, deliv_rate: {deliv_rate}")
