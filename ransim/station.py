@@ -407,7 +407,7 @@ class MarlStation(ParallelEnv):
         # TODO: process obs
 
         self.obs = obs
-        return obs, reward, terminated, {False for _ in self.Slice_lst}, info
+        return obs, reward, terminated, {slice.name: False for slice in self.Slice_lst}, info
     
     def state(self):
         # concatenate all observations
