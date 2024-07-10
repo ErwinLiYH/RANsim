@@ -135,14 +135,15 @@ class SingelSliceStation(gym.Env):
             base_slice.merge_records()
             self.Slice.stat_report(self.step_time)
             obs = self.Slice.get_observation()
+            info = self.Slice.get_rl_info()
             base_slice.step_records()
             base_slice.clean_all_buffer_record()
             base_slice.current_time += self.step_time
 
             self.logger.info("Reset finished.")
 
-            self.reset_result = (obs, self._get_info())
-            return obs, self._get_info()
+            self.reset_result = (obs, info)
+            return obs, info
 
     def step(self, action):
         # clean reset result
