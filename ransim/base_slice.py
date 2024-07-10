@@ -401,7 +401,9 @@ class BasicRanSlice:
             tx_throughput = sub_merged_df[sub_merged_df["step_tx"]==step]["size_tx"].sum() / step_time
             tx_throughput = tx_throughput*8/1000/1000
 
-            self.logger.info(f"-------------------- step {step} report <{current_time:.3f}s - {current_time+step_time:.3f}s> --------------------")
+            log_title = f"-------------------- slice {self.name} step {step} report <{current_time:.3f}s - {current_time+step_time:.3f}s> --------------------" if self.name else \
+                f"-------------------- step {step} report <{current_time:.3f}s - {current_time+step_time:.3f}s> --------------------"
+            self.logger.info(log_title)
             self.logger.info(f"Sent {sent_number} packet in step {step}.")
             self.logger.info(f"Received {recv_number_total} packet in total.")
             for i in receive_info.index:
@@ -437,7 +439,9 @@ class BasicRanSlice:
                 phy.SetTxPower(power)
 
     def handoverTo(self, N_RAB:int):
-        self.logger.info(f"-------------------- step {step} handover --------------------")
+        log_title = f"-------------------- slice {self.name} step {step} handover --------------------" if self.name else \
+            f"-------------------- step {step} handover --------------------"
+        self.logger.info(log_title)
         self.open_enb(N_RAB)
         if N_RAB != self.current_RB:
             for i in range(self.N_UEs):
