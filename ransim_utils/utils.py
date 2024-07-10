@@ -72,6 +72,22 @@ def list_to_abbr_str(lst, max_display=3):
         res += "]"
         return res
 
+class PortAssigner:
+    def __init__(self, start_ip=49153, step=1):
+        self.start_ip = start_ip
+        self.step = step
+        self.current_ip = start_ip
+
+    def __call__(self):
+        self.current_ip += self.step
+        return self.current_ip
+    
+    def __repr__(self):
+        return f"<PortAssigner start_ip={self.start_ip}, step={self.step}, current_ip={self.current_ip}>"
+    
+    def __str__(self):
+        return f"PortAssigner start_ip={self.start_ip}, step={self.step}, current_ip={self.current_ip}"
+
 # Running std mean updater, similar to Wellford's algorithm for online mean and variance calculation
 
 class RunningStdMeanUpdater(object):

@@ -222,17 +222,22 @@ class MarlStation(ParallelEnv):
         self.env_name = env_name
         self.root_path = root_path
 
+        # ---------- Pettingzoo parameters ----------
         for i in range(len(slice_lst)):
             slice_lst[i].name = f"agent_{i}"
-        self.agent_names = [slice.name for slice in slice_lst]
-        self.agent_name_map = {slice.name: slice for slice in slice_lst}
+        self.agents = [slice.name for slice in slice_lst]
+        self.possible_agents = self.agents.copy()
 
         # action space map
-        self.action_space_map = {slice.name: spaces.Discrete(len(slice.candidate_RBs)) for slice in slice_lst}
+        self.action_spaces = {slice.name: spaces.Discrete(len(slice.candidate_RBs)) for slice in slice_lst}
 
         # observation space
-        # [if_changed, n_sent, avg_sent_size, n_recv, avg_recv_size, sum_other_n_sent, sum_other_avg_sent_size, sum_other_n_recv, sum_other_avg_recv_size]
-        self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(11,), dtype=float)
+        # TODO: need to change the observation space
+        self.observation_spaces = {slice.name: spaces.Box(low=-np.inf, high=np.inf, shape=(11,), dtype=float) for slice in slice_lst}
+        # -------------------------------------------
+
+        # name -> slice dict
+        self.agent_name_map = {slice.name: slice for slice in slice_lst}
 
         # Set location of eNodeBs and UEs
         loc = 0
@@ -247,6 +252,9 @@ class MarlStation(ParallelEnv):
         # Warmup
         self.warmup()
 
+        # for return state
+        self.obs = None
+
     def log_info(self):
         if self.logger:
             for slice in self.Slice_lst:
@@ -256,11 +264,11 @@ class MarlStation(ParallelEnv):
 
     @functools.lru_cache(maxsize=None)
     def observation_space(self, agent: str):
-        return self.observation_space
+        return self.observation_spaces[agent]
 
     @functools.lru_cache(maxsize=None)
     def action_space(self, agent: str):
-        return self.action_space_map[agent]
+        return self.action_spaces[agent]
     
     def simple_step(self):
         # Don't do handover actions, just run simulation for one step and get observation
@@ -284,7 +292,8 @@ class MarlStation(ParallelEnv):
             while True:
                 obs = self.simple_step()
                 n_skip_times += 1
-                if any([i != 0 for i in obs[:, -1]]):  # need change according to obs
+                has_no_zero = any([any([i != 0 for i in o[:, -3]]) for o in obs.values()])
+                if has_no_zero:  # TODO: need change according to obs
                     break
             if n_skip_times > 0:
                 self.logger.info(f"Skip {n_skip_times} times to avoid off time of onoff application.")
@@ -304,7 +313,7 @@ class MarlStation(ParallelEnv):
             self.logger.info("Repeated warmup, skip this")
 
     def _get_info(self):
-        return {name: {} for name in self.agent_names}
+        return {name: {} for name in self.agents}
 
     def reset(self):
         if self.reset_result:
@@ -316,8 +325,8 @@ class MarlStation(ParallelEnv):
             # Plot last episode
             if self.episode != 0 and self.plot:
                 for slice in self.Slice_lst:
-                    slice.plot(os.path.join(self.root_path, f"{self.env_name}_{self.episode}.png"))
-                    slice.clean_plot_data(os.path.join(self.root_path, f"{self.env_name}_{self.episode}.pkl"))
+                    slice.plot(os.path.join(self.root_path, f"{slice.name}_{self.episode}.png"))
+                    slice.clean_plot_data(os.path.join(self.root_path, f"{slice.name}_{self.episode}.pkl"))
             else:
                 for slice in self.Slice_lst:
                     slice.clean_plot_data() # seems not needed
@@ -339,17 +348,21 @@ class MarlStation(ParallelEnv):
             ns.Simulator.Run()
 
             obs = {}
+            info = {}
             base_slice.merge_records()
             for slice in self.Slice_lst:
                 slice.stat_report(self.step_time)
                 obs[slice.name] = slice.get_observation()
+                info[slice.name] = slice.get_rl_info()
             base_slice.step_records()
+            base_slice.clean_all_buffer_record()
             base_slice.current_time += self.step_time
 
             self.logger.info("Reset finished.")
 
-            self.reset_result = (obs, self._get_info())
-            return obs, self._get_info()
+            self.reset_result = (obs, info)
+            self.obs = obs
+            return obs, info
     
     def step(self, action: dict):
         # clean reset result
@@ -362,55 +375,45 @@ class MarlStation(ParallelEnv):
 
         # Do handover actions
         for slice in self.Slice_lst:
-            action = action[slice.name]*slice.RB_resolution + slice.min_RB
-            assert action in slice.candidate_RBs, f"Action {action} is not in the action space {slice.candidate_RBs}"
-            slice.handoverTo(action)
+            a = action[slice.name]*slice.RB_resolution + slice.min_RB
+            assert a in slice.candidate_RBs, f"Action {a} is not in the action space {slice.candidate_RBs}"
+            slice.handoverTo(a)
         
         # Run simulation for one step
         ns.Simulator.Stop(ns.Seconds(self.step_time))
         ns.Simulator.Run()
 
-        # Get terminated
-        terminated = False
-        if base_slice.step >= self.max_step:
-            terminated = True
-        terminated = any(slice.get_terminated() for slice in self.Slice_lst)
-        terminated = {name: terminated for name in self.agent_names}
-
-        # Get info
-        info = self._get_info()
-
         # Get rewards and local observations
         reward = {}
         obs = {}
+        info = {}
+        terminated = {}
         base_slice.merge_records()
+        max_step_termi = (base_slice.step >= self.max_step)
         for slice in self.Slice_lst:
             slice.stat_report(self.step_time)
             reward[slice.name] = slice.get_reward()
             obs[slice.name] = slice.get_observation()
+            info[slice.name] = slice.get_rl_info()
+
+            # Get terminated
+            terminated[slice.name] = max_step_termi or slice.get_terminated()
+
         base_slice.step_records()
+        base_slice.clean_all_buffer_record()
         base_slice.current_time += self.step_time
 
-        return obs, reward, terminated, False, info
+        # TODO: process obs
 
-    def obs_process1(data: dict, num_slices: int):
-        aggregated_data = {}
-
-        for key, value in data.items():
-            sum_col1 = sum(val[0] for k, val in data.items() if k != key)
-            sum_col2 = sum(val[1] for k, val in data.items() if k != key)
-            sum_col4 = sum(val[3] for k, val in data.items() if k != key)
-            
-            weighted_avg_col3 = sum(val[2] * val[1] for k, val in data.items() if k != key) / sum_col2 if sum_col2 != 0 else 0
-            weighted_avg_col5 = sum(val[4] * val[3] for k, val in data.items() if k != key) / sum_col4 if sum_col4 != 0 else 0
-
-            aggregated_value = np.array([sum_col1, num_slices, sum_col2, weighted_avg_col3, sum_col4, weighted_avg_col5])
-            
-            concatenated_value = np.concatenate((value, aggregated_value))
-            
-            aggregated_data[key] = concatenated_value
-
-        return aggregated_data
+        self.obs = obs
+        return obs, reward, terminated, {False for _ in self.Slice_lst}, info
     
-    def obs_process2(obs):
+    def state(self):
+        # concatenate all observations
+        result_obs = np.array([])
+        for sub_obs in self.obs.values():
+            result_obs = np.concatenate((result_obs, sub_obs))
+    
+    def obs_process(obs):
+        # TODO: process obs
         pass
