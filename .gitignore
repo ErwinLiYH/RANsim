@@ -11,6 +11,9 @@ exps/
 *.png
 *.pkl
 
+# hide all exp data
+exp*/
+
 environment.yml
 set_environment.sh
 
