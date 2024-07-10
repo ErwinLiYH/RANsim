@@ -1,7 +1,7 @@
 import ransim
 from ransim import FuncSlices
 from ransim import Slice
-from ransim import utils
+from ransim_utils import utils
 from ransim import Station
 from ns import ns
 

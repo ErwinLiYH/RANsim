@@ -1,6 +1,6 @@
 from . import base_slice
 from typing import List, Dict
-from .utils import OnOffAppConfig, SinkAppConfig
+from ransim_utils.utils import OnOffAppConfig, SinkAppConfig
 import logging
 from ns import ns
 import numpy as np

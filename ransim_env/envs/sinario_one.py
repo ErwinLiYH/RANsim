@@ -6,7 +6,7 @@ class SinarioOne(WarpperForGym):
     def init_station(self):
         from ransim import func_slice
         from ransim import base_slice
-        from ransim import utils
+        from ransim_utils import utils
         from ransim import station
 
 

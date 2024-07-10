@@ -1,6 +1,6 @@
 import ransim
 from ransim import Slice
-from ransim import utils
+from ransim_utils import utils
 from ns import ns
 
 

@@ -3,7 +3,7 @@ import random
 import logging
 from collections import deque
 from ns import ns
-from .utils import SinkAppConfig, OnOffAppConfig, logging_helper, list_to_abbr_str
+from ransim_utils.utils import SinkAppConfig, OnOffAppConfig, logging_helper, list_to_abbr_str
 import random
 
 import matplotlib.pyplot as plt

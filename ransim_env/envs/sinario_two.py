@@ -4,7 +4,7 @@ import os
 class SinarioTwo(WarpperForGym):
     def init_station(self):
         from ransim import func_slice
-        from ransim import utils
+        from ransim_utils import utils
         from ransim import station
         from ransim import base_slice
 
