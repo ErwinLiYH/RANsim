@@ -64,7 +64,7 @@ class WarpperForPtP(ParallelEnv):
     def init_station(self):
         raise NotImplementedError
     
-    def reset(self):
+    def reset(self, seed = None, options=None):
         return self.station.reset()
     
     def step(self, action):
