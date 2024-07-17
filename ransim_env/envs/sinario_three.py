@@ -11,27 +11,30 @@ class SinarioThree(WarpperForPtP):
         # get logger
         log_helper = utils.logging_helper()
 
-        embb_log1 = log_helper.get_simple_file_logger("embb1", os.path.join(self.root_path, "embb1.log"))
-        embb_log2 = log_helper.get_simple_file_logger("embb2", os.path.join(self.root_path, "embb2.log"))
-        embb_log3 = log_helper.get_simple_file_logger("embb3", os.path.join(self.root_path, "embb3.log"))
-        station_log = log_helper.get_simple_file_logger("station1", os.path.join(self.root_path, "station1.log"))
+        embb_log1 = log_helper.get_simple_file_logger("embb1", os.path.join(self.root_path, f"embb1_{self.env_name}.log"))
+        embb_log2 = log_helper.get_simple_file_logger("embb2", os.path.join(self.root_path, f"embb2_{self.env_name}.log"))
+        embb_log3 = log_helper.get_simple_file_logger("embb3", os.path.join(self.root_path, f"embb3_{self.env_name}.log"))
+        station_log = log_helper.get_simple_file_logger("station1", os.path.join(self.root_path, f"station1_{self.env_name}.log"))
 
         rv_string = "ns3::NormalRandomVariable[Mean=15|Variance=5|Bound=10]"
 
         assigner = utils.PortAssigner()
 
+        # max throughtput = 30Mbps
         onoff_configs1 = [[], []]
         for _ in range(10):
             onoff_configs1[0].append(utils.OnOffAppConfig(0.1, 99999, data_rate="1Mb/s", port=assigner(), on_time=rv_string, off_time=rv_string))
         for _ in range(10, 14):
             onoff_configs1[1].append(utils.OnOffAppConfig(0.1, 99999, data_rate="5Mb/s", port=assigner(), on_time=rv_string, off_time=rv_string))
 
+        # max throughtput = 20Mbps
         onoff_configs2 = [[], []]
         for _ in range(10):
             onoff_configs2[0].append(utils.OnOffAppConfig(0.1, 99999, data_rate="1Mb/s", port=assigner(), on_time=rv_string, off_time=rv_string))
         for _ in range(10, 12):
             onoff_configs2[1].append(utils.OnOffAppConfig(0.1, 99999, data_rate="5Mb/s", port=assigner(), on_time=rv_string, off_time=rv_string))
 
+        # max throughtput = 20Mbps
         onoff_configs3 = [[], []]
         for _ in range(10):
             onoff_configs3[0].append(utils.OnOffAppConfig(0.1, 99999, data_rate="1Mb/s", port=assigner(), on_time=rv_string, off_time=rv_string))
