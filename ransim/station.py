@@ -156,10 +156,11 @@ class SingelSliceStation(gym.Env):
 
         # Do handover actions
         if action is not None:
-            action = action*self.Slice.RB_resolution + self.Slice.min_RB
-            assert action in self.Slice.candidate_RBs, f"Action {action} is not in the action space {self.Slice.candidate_RBs}"
             if self.Slice.action_process_fn:
                 action = self.Slice.action_process_fn(action)
+            else:
+                action = action*self.Slice.RB_resolution + self.Slice.min_RB
+            assert action in self.Slice.candidate_RBs, f"Action {action} is not in the action space {self.Slice.candidate_RBs}"
             self.Slice.handoverTo(action)
         
         # Run simulation for one step
@@ -376,7 +377,10 @@ class MarlStation(ParallelEnv):
 
         # Do handover actions
         for slice in self.Slice_lst:
-            a = action[slice.name]*slice.RB_resolution + slice.min_RB
+            if slice.action_process_fn:
+                a = slice.action_process_fn(action[slice.name])
+            else:
+                a = action[slice.name]*slice.RB_resolution + slice.min_RB
             assert a in slice.candidate_RBs, f"Action {a} is not in the action space {slice.candidate_RBs}"
             slice.handoverTo(a)
         
