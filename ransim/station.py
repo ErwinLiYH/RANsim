@@ -234,7 +234,7 @@ class MarlStation(ParallelEnv):
 
         # observation space
         # TODO: need to change the observation space
-        self.observation_spaces = {slice.name: spaces.Box(low=-np.inf, high=np.inf, shape=(11,), dtype=float) for slice in slice_lst}
+        self.observation_spaces = {slice.name: spaces.Box(low=-np.inf, high=np.inf, shape=(3,5), dtype=float) for slice in slice_lst}
         # -------------------------------------------
 
         # name -> slice dict
