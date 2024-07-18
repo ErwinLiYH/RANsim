@@ -199,7 +199,7 @@ class MultiSliceStation(gym.Env):
     pass
 
 class MarlStation(ParallelEnv):
-    def __init__(self, env_name:str, slice_lst:List[base_slice.BasicRanSlice], max_step, step_time=0.05, warmup_times=10, logger:None|logging.Logger = None, enb_distance=5000, ue_range=100, plot=False, root_path:str="./", max_RB=100):
+    def __init__(self, env_name:str, slice_lst:List[base_slice.BasicRanSlice], max_step, step_time=0.05, warmup_times=10, logger:None|logging.Logger = None, enb_distance=5000, ue_range=100, plot=False, root_path:str="./", max_RB=100, obs_process_fn=None):
         
         # Connect callback functions
         ns.Config.Connect("/NodeList/*/ApplicationList/*/$ns3::OnOffApplication/TxWithSeqTsSize", base_slice.TxWithSeqTsSize_callback_cpp)
@@ -211,6 +211,7 @@ class MarlStation(ParallelEnv):
         self.step_time = step_time
         self.warmup_times = warmup_times
         self.max_RB = max_RB
+        self.obs_process_fn = obs_process_fn
         self.logger = logger
 
         self.reset_result = None   # To avoid repeated reset, reset() will set this value to the result of reset, step() will clean this value
@@ -237,8 +238,7 @@ class MarlStation(ParallelEnv):
         self.action_spaces = {slice.name: spaces.Discrete(len(slice.candidate_RBs)) for slice in slice_lst}
 
         # observation space
-        # TODO: need to change the observation space
-        self.observation_spaces = {slice.name: spaces.Box(low=-np.inf, high=np.inf, shape=(3,5), dtype=float) for slice in slice_lst}
+        self.observation_spaces = {slice.name: spaces.Box(low=-np.inf, high=np.inf, shape=(3,12), dtype=float) for slice in slice_lst}
         # -------------------------------------------
 
         # name -> slice dict
@@ -257,7 +257,7 @@ class MarlStation(ParallelEnv):
         # Warmup
         self.warmup()
 
-        # for return state
+        # local raw obs for return state
         self.obs = None
 
     def log_info(self):
@@ -297,8 +297,8 @@ class MarlStation(ParallelEnv):
             while True:
                 obs = self.simple_step()
                 n_skip_times += 1
-                has_no_zero = any([any([i != 0 for i in o[:, -3]]) for o in obs.values()])
-                if has_no_zero:  # TODO: need change according to obs
+                has_no_zero = any([any([i != 0 for i in o[:, 2]]) for o in obs.values()])
+                if has_no_zero:
                     break
             if n_skip_times > 0:
                 self.logger.info(f"Skip {n_skip_times} times to avoid off time of onoff application.")
@@ -380,8 +380,9 @@ class MarlStation(ParallelEnv):
 
             self.logger.info("Reset finished.")
 
-            self.reset_result = (obs, info)
             self.obs = obs
+            obs = self.obs_process(obs)
+            self.reset_result = (obs, info)
             return obs, info
     
     def step(self, action: dict):
@@ -451,10 +452,8 @@ class MarlStation(ParallelEnv):
         base_slice.clean_all_buffer_record()
         base_slice.current_time += self.step_time
 
-        # TODO: process obs
-
         self.obs = obs
-        return obs, reward, terminated, {slice.name: False for slice in self.Slice_lst}, info
+        return self.obs_process(obs), reward, terminated, {slice.name: False for slice in self.Slice_lst}, info
     
     def state(self):
         # concatenate all observations
@@ -462,6 +461,30 @@ class MarlStation(ParallelEnv):
         for sub_obs in self.obs.values():
             result_obs = np.concatenate((result_obs, sub_obs))
     
-    def obs_process(obs):
-        # TODO: process obs
-        pass
+    def obs_process(self, obs):
+        # process the local observation
+        # raw local obs:
+        # {
+        #     agent: [[current_RB, SE, throughtput, buffer_increase, droped_size]*3],
+        #     ...
+        # }
+        proposed_obs = {}
+        if self.obs_process_fn:
+            return self.obs_process_fn(obs)
+        else:
+            for agent in self.agents:
+                sum_RB_except = np.sum([v[:,0:1] for a,v in obs.items() if a != agent], axis=0)
+
+                SE_arrays = [v[:,1:2] for a,v in obs.items() if a != agent]
+                min_SE_except = np.min(SE_arrays, axis=0)
+                max_SE_except = np.max(SE_arrays, axis=0)
+                mean_SE_except = np.mean(SE_arrays, axis=0)
+
+                sum_throughput_except = np.sum([v[:,2:3] for a,v in obs.items() if a != agent], axis=0)
+
+                sum_buffer_increase_except = np.sum([v[:,3:4] for a,v in obs.items() if a != agent], axis=0)
+
+                sum_droped_size_except = np.sum([v[:,4:5] for a,v in obs.items() if a != agent], axis=0)
+
+                proposed_obs[agent] = np.concatenate((obs[agent], sum_RB_except, min_SE_except, max_SE_except, mean_SE_except, sum_throughput_except, sum_buffer_increase_except, sum_droped_size_except), axis=1)
+            return proposed_obs
