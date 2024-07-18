@@ -12,6 +12,8 @@ from typing import List
 import functools
 
 import os
+import copy
+import warnings
 
 
 class SingelSliceStation(gym.Env):
@@ -197,7 +199,7 @@ class MultiSliceStation(gym.Env):
     pass
 
 class MarlStation(ParallelEnv):
-    def __init__(self, env_name:str, slice_lst:List[base_slice.BasicRanSlice], max_step, step_time=0.05, warmup_times=10, logger:None|logging.Logger = None, enb_distance=5000, ue_range=100, plot=False, root_path:str="./"):
+    def __init__(self, env_name:str, slice_lst:List[base_slice.BasicRanSlice], max_step, step_time=0.05, warmup_times=10, logger:None|logging.Logger = None, enb_distance=5000, ue_range=100, plot=False, root_path:str="./", max_RB=100):
         
         # Connect callback functions
         ns.Config.Connect("/NodeList/*/ApplicationList/*/$ns3::OnOffApplication/TxWithSeqTsSize", base_slice.TxWithSeqTsSize_callback_cpp)
@@ -208,6 +210,7 @@ class MarlStation(ParallelEnv):
         self.Slice_lst = slice_lst
         self.step_time = step_time
         self.warmup_times = warmup_times
+        self.max_RB = max_RB
         self.logger = logger
 
         self.reset_result = None   # To avoid repeated reset, reset() will set this value to the result of reset, step() will clean this value
@@ -336,10 +339,25 @@ class MarlStation(ParallelEnv):
 
             base_slice.clean_all_records()
 
+            # set too a random RB for each slice
+            random_RBs = {slice: random.choice(slice.candidate_RBs) for slice in self.Slice_lst}
+            # make sure sum of RBs is less than max_RB
+            iteration_times = 0
+            while sum(random_RBs.values()) > self.max_RB:
+                # random choose one slice to decrease
+                k = random.choice(list(random_RBs.keys()))
+                if random_RBs[k] == k.min_RB:   # can't decrease since it's already min_RB
+                    continue
+                random_RBs[k] -= 1
+                iteration_times += 1
+                if iteration_times > 1000:
+                    if self.logger:
+                        self.logger.warning(f"Too many iterations to decrease the total RBs, actions: {actions}")
+                    else:
+                        warnings.warn(f"Too many iterations to decrease the total RBs, actions: {actions}")
             for slice in self.Slice_lst:
-                random_RB = random.choice(slice.candidate_RBs)
-                slice.handoverTo(random_RB)
-                slice.clean_RB_record(random_RB)
+                slice.handoverTo(random_RBs[slice])
+                slice.clean_RB_record(random_RBs[slice])
 
             self.warmup()
             for slice in self.Slice_lst:
@@ -376,11 +394,30 @@ class MarlStation(ParallelEnv):
             self.is_ready = False
 
         # Do handover actions
-        for slice in self.Slice_lst:
+        exceed_RB = 0
+        actions = copy.deepcopy(action)
+        for slice in self.Slice_lst:                            # preprocess actions
             if slice.action_process_fn:
-                a = slice.action_process_fn(action[slice.name])
+                actions[slice.name] = slice.action_process_fn(action[slice.name])
             else:
-                a = action[slice.name]*slice.RB_resolution + slice.min_RB
+                actions[slice.name] = action[slice.name]*slice.RB_resolution + slice.min_RB
+        if sum(actions.values()) > self.max_RB:
+            exceed_RB = 1
+        iteration_times = 0
+        while sum(actions.values()) > self.max_RB:              # make sure sum of RBs is less than max_RB
+            # random choose one slice to decrease
+            k = random.choice(list(actions.keys()))
+            if actions[k] == self.agent_name_map[k].min_RB:     # can't decrease since it's already min_RB
+                continue
+            actions[k] -= 1
+            iteration_times += 1
+            if iteration_times > 1000:
+                if self.logger:
+                    self.logger.warning(f"Too many iterations to decrease the total RBs, actions: {actions}")
+                else:
+                    warnings.warn(f"Too many iterations to decrease the total RBs, actions: {actions}")
+        for slice in self.Slice_lst:
+            a = actions[slice.name]
             assert a in slice.candidate_RBs, f"Action {a} is not in the action space {slice.candidate_RBs}"
             slice.handoverTo(a)
         
@@ -403,6 +440,12 @@ class MarlStation(ParallelEnv):
 
             # Get terminated
             terminated[slice.name] = max_step_termi or slice.get_terminated()
+
+        # If the total number of RBs exceeds the maximum RBs, give all agents a negative reward
+        if exceed_RB == 1:
+            if self.logger:
+                self.logger.warning(f"Exceed the maximum RBs in episode {self.episode} step {base_slice.step}, do actions: {actions} instead of {action}")
+            reward = {agent: -20 for agent, _ in reward.items()}
 
         base_slice.step_records()
         base_slice.clean_all_buffer_record()
