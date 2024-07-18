@@ -352,9 +352,9 @@ class MarlStation(ParallelEnv):
                 iteration_times += 1
                 if iteration_times > 1000:
                     if self.logger:
-                        self.logger.warning(f"Too many iterations to decrease the total RBs, actions: {actions}")
+                        self.logger.warning(f"Too many iterations to decrease the total RBs, actions: {random_RBs}")
                     else:
-                        warnings.warn(f"Too many iterations to decrease the total RBs, actions: {actions}")
+                        warnings.warn(f"Too many iterations to decrease the total RBs, actions: {random_RBs}")
             for slice in self.Slice_lst:
                 slice.handoverTo(random_RBs[slice])
                 slice.clean_RB_record(random_RBs[slice])
