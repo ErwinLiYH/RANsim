@@ -1,3 +1,6 @@
+# Fetch data from pkl files and save them to csv files
+# For results stored by ransim directly
+
 import pandas as pd
 import glob
 
