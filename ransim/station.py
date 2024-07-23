@@ -199,7 +199,7 @@ class MultiSliceStation(gym.Env):
     pass
 
 class MarlStation(ParallelEnv):
-    def __init__(self, env_name:str, slice_lst:List[base_slice.BasicRanSlice], max_step, step_time=0.05, warmup_times=10, logger:None|logging.Logger = None, enb_distance=5000, ue_range=100, plot=False, root_path:str="./", max_RB=100, obs_process_fn=None):
+    def __init__(self, env_name:str, slice_lst:List[base_slice.BasicRanSlice], max_step, step_time=0.05, warmup_times=10, logger:None|logging.Logger = None, enb_distance=5000, ue_range=100, plot=False, root_path:str="./", max_RB=100, obs_process_fn=None, flatten_obs_and_state=False):
         
         # Connect callback functions
         ns.Config.Connect("/NodeList/*/ApplicationList/*/$ns3::OnOffApplication/TxWithSeqTsSize", base_slice.TxWithSeqTsSize_callback_cpp)
@@ -213,6 +213,7 @@ class MarlStation(ParallelEnv):
         self.max_RB = max_RB
         self.obs_process_fn = obs_process_fn
         self.logger = logger
+        self.flatten_obs_and_state = flatten_obs_and_state
 
         self.reset_result = None   # To avoid repeated reset, reset() will set this value to the result of reset, step() will clean this value
         self.is_ready = False      # To avoid repeated warmup, warmup() will set this value to True, step() will set this value to False
@@ -238,9 +239,17 @@ class MarlStation(ParallelEnv):
         self.action_spaces = {slice.name: spaces.Discrete(len(slice.candidate_RBs)) for slice in slice_lst}
 
         # observation space
-        self.observation_spaces = {slice.name: spaces.Box(low=-np.inf, high=np.inf, shape=(3,12), dtype=float) for slice in slice_lst}
+        if flatten_obs_and_state:
+            self.observation_spaces = {slice.name: spaces.Discrete(3*12) for slice in slice_lst}
+        else:
+            self.observation_spaces = {slice.name: spaces.Box(low=-np.inf, high=np.inf, shape=(3,12), dtype=float) for slice in slice_lst}
         # -------------------------------------------
 
+        if flatten_obs_and_state:
+            self.state_space = gym.spaces.Discrete(3*(len(self.Slice_lst)*5))
+        else:
+            self.state_space = gym.spaces.Box(low=-1, high=1, shape=(3, len(self.Slice_lst)*5), dtype=float)
+        
         # name -> slice dict
         self.agent_name_map = {slice.name: slice for slice in slice_lst}
 
@@ -380,8 +389,14 @@ class MarlStation(ParallelEnv):
 
             self.logger.info("Reset finished.")
 
-            self.obs = obs
+            self.obs = obs                    # record raw obs for return state
+
+            # process the local observation
             obs = self.obs_process(obs)
+            if self.flatten_obs_and_state:
+                for a, o in obs.items():
+                    obs[a] = o.flatten()
+
             self.reset_result = (obs, info)
             return obs, info
     
@@ -452,14 +467,24 @@ class MarlStation(ParallelEnv):
         base_slice.clean_all_buffer_record()
         base_slice.current_time += self.step_time
 
-        self.obs = obs
-        return self.obs_process(obs), reward, terminated, {slice.name: False for slice in self.Slice_lst}, info
+        self.obs = obs               # record raw obs for return state
+
+        # process the local observation
+        obs = self.obs_process(obs)
+        if self.flatten_obs_and_state:
+            for a, o in obs.items():
+                obs[a] = o.flatten()
+
+        return obs, reward, terminated, {slice.name: False for slice in self.Slice_lst}, info
     
     def state(self):
         # concatenate all observations
-        result_obs = np.array([])
-        for sub_obs in self.obs.values():
-            result_obs = np.concatenate((result_obs, sub_obs))
+        res = np.concatenate(list(self.obs.values()), axis=1)
+
+        if self.flatten_obs_and_state:
+            res = res.flatten()
+        
+        return res
     
     def obs_process(self, obs):
         # process the local observation
