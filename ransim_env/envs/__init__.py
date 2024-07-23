@@ -4,6 +4,11 @@ from pettingzoo import ParallelEnv
 import numpy as np
 import os
 
+try:
+    from ray.rllib.env.multi_agent_env import ENV_STATE
+except ImportError:
+    ENV_STATE = "state"
+
 
 class WarpperForGym(gym.Env):
     def __init__(self, env_name, max_step:int, unchange_terminate:int=0, plot:bool=False, root_path:str="./", no_termi = False):
@@ -78,3 +83,36 @@ class WarpperForPtP(ParallelEnv):
     
     def state(self):
         return self.station.state()
+    
+class AddStatePtP(ParallelEnv):
+    def __init__(self, env):
+        self.env = env
+        self.agents = self.env.agents
+        self.possible_agents = self.env.possible_agents
+        self.action_spaces = self.env.action_spaces
+
+        self.observation_spaces = {}
+        for agent, space in self.env.observation_spaces.items():
+            self.observation_spaces[agent] = gym.spaces.Dict(
+                {
+                    "obs": space,
+                    ENV_STATE: self.env.state_space
+                }
+            )
+
+    def reset(self, seed = None, options=None):
+        obs, info = self.env.reset()
+        return {agent: {"obs": o, ENV_STATE: self.env.state()} for agent, o in obs.items()}, info
+    
+    def step(self, action):
+        obs, reward, done, info = self.env.step(action)
+        return {agent: {"obs": o, ENV_STATE: self.env.state()} for agent, o in obs.items()}, reward, done, info
+    
+    def observation_space(self, agent):
+        return self.observation_spaces[agent]
+    
+    def action_space(self, agent):
+        return self.env.action_space(agent)
+    
+    def state(self):
+        return self.env.state()
