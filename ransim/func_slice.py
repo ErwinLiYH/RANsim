@@ -66,6 +66,7 @@ class EmbbSlice(base_slice.BasicRanSlice):
         self.SLA_violations = []
         self.SLA_violation = 0
         self.bad_SE = 0
+        self.SE_threshold = 4
 
         self.SE_list = []
 
@@ -151,7 +152,7 @@ class EmbbSlice(base_slice.BasicRanSlice):
         # Calculate SE (spectral efficiency)
         SE = (self.stat[0].sum()*1000*1000) / (180000 * self.current_RB) # bps/Hz
         self.SE_list.append(SE)
-        if SE < 4:
+        if SE < self.SE_threshold:
             self.bad_SE = 1
         else:
             self.bad_SE = 0
@@ -162,9 +163,8 @@ class EmbbSlice(base_slice.BasicRanSlice):
 
         # Calculate reward
         # reward = 1 * SE - 1 * SLA_violation # - 1 * P
-        SE_threshold = 4
         if SLA_violation == 0:
-            if SE < SE_threshold:
+            if SE < self.SE_threshold:
                 reward = -5
             else:
                 reward = 2*SE
