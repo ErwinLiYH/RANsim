@@ -129,8 +129,9 @@ class EmbbSlice(base_slice.BasicRanSlice):
         for cqi, sla in self.SLAs.items():
             throughput_violation_rate_temp = (self.stat[0][cqi] - sla["throughput"]) / sla["throughput"] if self.stat[1][cqi] >= sla["throughput"] else 0
             # throughput_violation_rate.append((self.stat[0][cqi] - sla["throughput"]) / sla["throughput"])
-            throughput_violation_rate.append(throughput_violation_rate_temp)
-            delay_violation_rate.append((sla["delay"] - self.stat[2][cqi]) / sla["delay"])
+            throughput_violation_rate.append(0 if np.isnan(throughput_violation_rate_temp) else throughput_violation_rate_temp)
+            delay_violation_rate_temp = (sla["delay"] - self.stat[2][cqi]) / sla["delay"]
+            delay_violation_rate.append(0 if np.isnan(delay_violation_rate_temp) else delay_violation_rate_temp)
             if self.stat[0][cqi] < sla["throughput"] and throughput_violation_rate_temp < -THRESHOLD:
                 if self.stat[1][cqi] >= sla["throughput"]:
                     SLA_violation = 1
@@ -167,11 +168,12 @@ class EmbbSlice(base_slice.BasicRanSlice):
             if SE < self.SE_threshold:
                 reward = -5
             else:
-                reward = 2*SE
+                reward = (SE**3)/10
         else: 
             # reward = -np.log(1-(sum([i for i in delay_violation_rate if i < 0]) + sum([i for i in throughput_violation_rate if i < 0])))
-            total_violation_rate = sum([i for i in delay_violation_rate if i < 0]) + sum([i for i in throughput_violation_rate if i < 0])
-            reward = -10
+            total__min_violation_rate = min(delay_violation_rate) + min(throughput_violation_rate)
+            reward = total__min_violation_rate * 10
+            # reward = -10
 
         # if self.changed_RB:
         #     reward -= 5
