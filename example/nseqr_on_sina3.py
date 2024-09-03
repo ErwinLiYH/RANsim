@@ -33,7 +33,7 @@ eval_episodes = 10
 
 episode_len = 300
 
-collect_steps_per_runner = 150
+collect_steps_per_runner = 300
 train_runner = 20
 collect_steps = collect_steps_per_runner * train_runner
 
@@ -179,6 +179,7 @@ config = (
         train_batch_size = 64,
         lr = 1e-3,
         collect_size = collect_steps,
+        train_times_per_step = 0.5,
     )
     .evaluation(
         evaluation_interval = 1,
@@ -203,9 +204,9 @@ config = (
 )
 
 config.exploration_config.update({
-    "initial_epsilon": 0.5,
-    "final_epsilon": 0.1,
-    "epsilon_timesteps": 120000,
+    "initial_epsilon": 0.9,
+    "final_epsilon": 0.2,
+    "epsilon_timesteps": 160000,
 })
 
 res = tune.Tuner(
