@@ -183,6 +183,8 @@ class EmbbSlice(base_slice.BasicRanSlice):
             reward = 1
             self.bad_SE = 0
 
+        reward += (1-int(self.changed_RB))*5
+
         if self.logger:
             self.logger.info(f"Reward: {reward}, SE: {SE}, SLA_violation: {SLA_violation}, delay_violation_rate: {delay_violation_rate}, throughput_violation_rate: {throughput_violation_rate}, deliv_rate: {deliv_rate}")
 
@@ -194,7 +196,8 @@ class EmbbSlice(base_slice.BasicRanSlice):
         return {
             "SLA_violation": self.SLA_violation,
             "bad_SE": self.bad_SE,
-            "changed_RB": self.changed_RB
+            "changed_RB": self.changed_RB,
+            "changes_RB_rew": (1-int(self.changed_RB))*5
             }
     
     def get_observation(self, if_log=True):
