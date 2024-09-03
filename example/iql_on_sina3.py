@@ -36,7 +36,7 @@ eval_episodes = 10
 
 episode_len = 300
 
-collect_steps_per_runner = 150
+collect_steps_per_runner = 300
 train_runner = 20
 collect_steps = collect_steps_per_runner * train_runner
 
@@ -181,7 +181,8 @@ config = (
     .resources(num_gpus = 1)
     .training(
         gamma = gamma,
-        train_batch_size = 64,
+        train_times_per_step = 0.5,
+        train_batch_size = 8,
         lr = 1e-3,
         collect_size = collect_steps,
     )
@@ -208,8 +209,8 @@ config = (
 )
 
 config.exploration_config.update({
-    "initial_epsilon": 0.5,
-    "final_epsilon": 0.1,
+    "initial_epsilon": 0.9,
+    "final_epsilon": 0.5,
     "epsilon_timesteps": 120000,
 })
 
