@@ -14,6 +14,8 @@ import functools
 import os
 import copy
 import warnings
+import pickle
+import matplotlib.pyplot as plt
 
 
 class SingelSliceStation(gym.Env):
@@ -338,9 +340,68 @@ class MarlStation(ParallelEnv):
 
             # Plot last episode
             if self.episode != 0 and self.plot:
+                global_plot_data = {
+                    "steps": [],
+                    "tx_throughputs": {},
+                    "rx_throughputs": {},
+                    "RBs": {},
+                    "labels": [],
+                }
                 for slice in self.Slice_lst:
-                    slice.plot(os.path.join(self.root_path, f"{slice.name}_{self.episode}.png"))
+                    sub_plot_data = slice.plot(os.path.join(self.root_path, f"{slice.name}_{self.episode}.png"))
                     slice.clean_plot_data(os.path.join(self.root_path, f"{slice.name}_{self.episode}.pkl"))
+
+                    # build global plot data
+                    global_plot_data["labels"].append(slice.name)
+                    global_plot_data["tx_throughputs"][slice.name] = sub_plot_data["tx_throughputs"]
+                    global_plot_data["rx_throughputs"][slice.name] = sub_plot_data["rx_throughputs"]
+                    global_plot_data["RBs"][slice.name] = sub_plot_data["RBs"]
+
+                global_plot_data["steps"] = sub_plot_data["steps"]
+                for i in range(1, len(self.Slice_lst)):
+                    global_plot_data["tx_throughputs"][global_plot_data["labels"][i]] = [
+                        last + curr
+                        for last, curr in
+                        zip(
+                            global_plot_data["tx_throughputs"][global_plot_data["labels"][i-1]],
+                            global_plot_data["tx_throughputs"][global_plot_data["labels"][i]]
+                            )
+                        ]
+                    global_plot_data["rx_throughputs"][global_plot_data["labels"][i]] = [
+                        last + curr
+                        for last, curr in
+                        zip(
+                            global_plot_data["rx_throughputs"][global_plot_data["labels"][i-1]],
+                            global_plot_data["rx_throughputs"][global_plot_data["labels"][i]]
+                            )
+                        ]
+                    global_plot_data["RBs"][global_plot_data["labels"][i]] = [
+                        last + curr
+                        for last, curr in
+                        zip(
+                            global_plot_data["RBs"][global_plot_data["labels"][i-1]],
+                            global_plot_data["RBs"][global_plot_data["labels"][i]]
+                            )
+                        ]
+                
+                # plot globally
+                fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 12))
+                
+                for slice_name in global_plot_data["labels"]:
+                    ax1.plot(global_plot_data["steps"], global_plot_data["tx_throughputs"][slice_name], label=slice_name)
+                ax1.set_xlabel('Steps')
+                ax1.set_ylabel('Throughput (Mb/s)')
+                ax1.legend()
+                for slice_name in global_plot_data["labels"]:
+                    ax2.plot(global_plot_data["steps"], global_plot_data["RBs"][slice_name], label=slice_name)
+                ax2.set_xlabel('Steps')
+                ax2.set_ylabel('Throughput (Mb/s)')
+                ax2.legend()
+                plt.tight_layout()
+                fig.savefig(os.path.join(self.root_path, f"global_{self.episode}.png"))
+                # save the global plot data
+                pickle.dump(global_plot_data, open(os.path.join(self.root_path, f"global_{self.episode}.pkl"), "wb"))
+
             else:
                 for slice in self.Slice_lst:
                     slice.clean_plot_data() # seems not needed

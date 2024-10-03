@@ -567,7 +567,7 @@ class BasicRanSlice:
         # save figure
         fig.savefig(save_path)
 
-        return self.plot_data
+        return {"steps": steps, "tx_throughputs": tx_throughputs, "rx_throughputs": rx_throughputs, "RBs": RBs}
     
     def clean_plot_data(self, save_path:str = None):
         if save_path:
