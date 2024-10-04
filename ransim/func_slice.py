@@ -62,13 +62,11 @@ class EmbbSlice(base_slice.BasicRanSlice):
         super().__init__(N_UEs, initial_RB, RB_resolution, min_RB, max_RB, logger, unlim_RB, unchange_terminate, action_process_fn)
 
         self.SLAs = SLAs
-        self.SLA_violation_list = []
-        self.SLA_violations = []
         self.SLA_violation = 0
         self.bad_SE = 0
         self.SE_threshold = 4
 
-        self.SE_list = []
+        self.SE = None
 
         self.no_termi = no_termi
 
@@ -120,6 +118,7 @@ class EmbbSlice(base_slice.BasicRanSlice):
         total_n_send = stat.groupby("CQI")["nSend"].sum()
         total_tx_pac_size = stat.groupby("CQI")["tx_pacSizeSum"].sum()
         self.stat = (total_throughput, total_tx_throughput, max_delay, total_n_recv, total_pac_size, total_n_send, total_tx_pac_size, total_n_recvstep)
+        self.SE = (self.stat[0].sum()*1000*1000) / (180000 * self.current_RB) # bps/Hz
 
     def get_reward(self):
         # Calculate SLA violation
@@ -144,15 +143,11 @@ class EmbbSlice(base_slice.BasicRanSlice):
         if deliv_rate<0.95:
             SLA_violation = 1
 
-        self.SLA_violation_list.append((SLA_violation, delay_violation_rate, throughput_violation_rate))
         self.SLA_violation = SLA_violation
         self.logger.info(f"SLA_vio:{bool(self.SLA_violation)}")
-        self.SLA_violations.append(SLA_violation)
         self.accumulated_SLA_violation += SLA_violation
 
-        # Calculate SE (spectral efficiency)
-        SE = (self.stat[0].sum()*1000*1000) / (180000 * self.current_RB) # bps/Hz
-        self.SE_list.append(SE)
+        SE = self.SE
         if SE < self.SE_threshold:
             self.bad_SE = 1
         else:
