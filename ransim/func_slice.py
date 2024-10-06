@@ -201,10 +201,7 @@ class EmbbSlice(base_slice.BasicRanSlice):
         n_send = self.stat[5].sum()
         recv_avg_packet_size = self.stat[4].sum() / n_recv if n_recv != 0 else 0
         tx_avg_packet_size = self.stat[6].sum() / n_send if n_send != 0 else 0
-        try:
-            SE = self.SE_list[-1]
-        except IndexError:
-            SE = (self.stat[0].sum()*1000*1000) / (180000 * self.current_RB) # bps/Hz
+        SE = self.SE
     
         # [current_RB, if_changed, n_recv, avg_recv_packet_size, n_send, avg_send_packet_size]
         throughput = self.stat[1].sum()
