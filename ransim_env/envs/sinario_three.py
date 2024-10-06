@@ -20,26 +20,26 @@ class SinarioThree(WarpperForPtP):
 
         assigner = utils.PortAssigner()
 
-        # max throughtput = 30Mbps
+        # max throughtput = 20Mbps
         onoff_configs1 = [[], []]
-        for _ in range(10):
-            onoff_configs1[0].append(utils.OnOffAppConfig(0.1, 99999, data_rate="1Mb/s", port=assigner(), on_time=rv_string, off_time=rv_string))
+        for _ in range(20):
+            onoff_configs1[0].append(utils.OnOffAppConfig(0.1, 99999, data_rate="0.5Mb/s", port=assigner(), on_time=rv_string, off_time=rv_string))
         for _ in range(10, 14):
-            onoff_configs1[1].append(utils.OnOffAppConfig(0.1, 99999, data_rate="5Mb/s", port=assigner(), on_time=rv_string, off_time=rv_string))
+            onoff_configs1[1].append(utils.OnOffAppConfig(0.1, 99999, data_rate="2Mb/s", port=assigner(), on_time=rv_string, off_time=rv_string))
 
         # max throughtput = 20Mbps
         onoff_configs2 = [[], []]
-        for _ in range(10):
-            onoff_configs2[0].append(utils.OnOffAppConfig(0.1, 99999, data_rate="1Mb/s", port=assigner(), on_time=rv_string, off_time=rv_string))
-        for _ in range(10, 12):
-            onoff_configs2[1].append(utils.OnOffAppConfig(0.1, 99999, data_rate="5Mb/s", port=assigner(), on_time=rv_string, off_time=rv_string))
+        for _ in range(20):
+            onoff_configs2[0].append(utils.OnOffAppConfig(0.1, 99999, data_rate="0.5Mb/s", port=assigner(), on_time=rv_string, off_time=rv_string))
+        for _ in range(10, 14):
+            onoff_configs2[1].append(utils.OnOffAppConfig(0.1, 99999, data_rate="2Mb/s", port=assigner(), on_time=rv_string, off_time=rv_string))
 
         # max throughtput = 20Mbps
         onoff_configs3 = [[], []]
-        for _ in range(10):
-            onoff_configs3[0].append(utils.OnOffAppConfig(0.1, 99999, data_rate="1Mb/s", port=assigner(), on_time=rv_string, off_time=rv_string))
-        for _ in range(10, 12):
-            onoff_configs3[1].append(utils.OnOffAppConfig(0.1, 99999, data_rate="5Mb/s", port=assigner(), on_time=rv_string, off_time=rv_string))
+        for _ in range(20):
+            onoff_configs3[0].append(utils.OnOffAppConfig(0.1, 99999, data_rate="0.5Mb/s", port=assigner(), on_time=rv_string, off_time=rv_string))
+        for _ in range(10, 14):
+            onoff_configs3[1].append(utils.OnOffAppConfig(0.1, 99999, data_rate="2Mb/s", port=assigner(), on_time=rv_string, off_time=rv_string))
 
         sink_config = utils.SinkAppConfig(0, 99999)
 
