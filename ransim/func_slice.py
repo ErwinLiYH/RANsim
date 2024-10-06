@@ -164,14 +164,8 @@ class EmbbSlice(base_slice.BasicRanSlice):
                 reward = -5
             else:
                 reward = (SE**3)/10
-            
-            # keeping bonus
-            reward += (1-int(self.changed_RB))*5
         else: 
-            # reward = -np.log(1-(sum([i for i in delay_violation_rate if i < 0]) + sum([i for i in throughput_violation_rate if i < 0])))
-            total__min_violation_rate = min(delay_violation_rate) + min(throughput_violation_rate)
-            reward = total__min_violation_rate * 10
-            # reward = -10
+            reward = -10
 
         # if self.changed_RB:
         #     reward -= 5
@@ -180,6 +174,9 @@ class EmbbSlice(base_slice.BasicRanSlice):
         if self.current_RB == self.min_RB and self.bad_SE:
             reward = 1
             self.bad_SE = 0
+
+        # keeping bonus
+        reward += (1-int(self.changed_RB))*5
 
         if self.logger:
             self.logger.info(f"Reward: {reward}, SE: {SE}, SLA_violation: {SLA_violation}, delay_violation_rate: {delay_violation_rate}, throughput_violation_rate: {throughput_violation_rate}, deliv_rate: {deliv_rate}")
@@ -193,7 +190,7 @@ class EmbbSlice(base_slice.BasicRanSlice):
             "SLA_violation": self.SLA_violation,
             "bad_SE": self.bad_SE,
             "changed_RB": self.changed_RB,
-            "changes_RB_rew": (1-int(self.changed_RB))*self.SLA_violation*5
+            "changes_RB_rew": (1-int(self.changed_RB))*5
             }
     
     def get_observation(self, if_log=True):
