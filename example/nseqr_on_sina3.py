@@ -78,6 +78,7 @@ class MyCallbacks(DefaultCallbacks):
         # Create a new user_data dict for this episode.
         episode.user_data["sla_vio_times"] = {}
         episode.user_data["reconf_times"] = {}
+        episode.user_data["global_SEs"] = []
         # on start, the get_agents() will return empty list
 
     def on_episode_step(
@@ -97,6 +98,8 @@ class MyCallbacks(DefaultCallbacks):
         )
         # get agents
         agents = episode.get_agents()
+        total_throughput = 0
+        total_RB = 0
         for a in agents:
             sla = episode.last_info_for(a)["SLA_violation"]
             reconf = int(episode.last_info_for(a)["changed_RB"])
@@ -109,6 +112,11 @@ class MyCallbacks(DefaultCallbacks):
                 episode.user_data["reconf_times"][a] = reconf
             else:
                 episode.user_data["reconf_times"][a] += reconf
+
+            total_throughput += episode.last_info_for(a)["throughput"]
+            total_RB += episode.last_info_for(a)["RB"]
+
+        episode.user_data["global_SEs"].append((total_throughput*1000000) / (180000 * total_RB))
 
     def on_episode_end(
         self,
@@ -123,6 +131,7 @@ class MyCallbacks(DefaultCallbacks):
         for a in episode.get_agents():
             episode.custom_metrics[f"sla_vio_times_{a}"] = episode.user_data["sla_vio_times"][a]
             episode.custom_metrics[f"reconf_times_{a}"] = episode.user_data["reconf_times"][a]
+        episode.custom_metrics["global_SE"] = sum(episode.user_data["global_SEs"])/episode.length
 
     def on_evaluate_end(
         self,
@@ -146,6 +155,10 @@ class MyCallbacks(DefaultCallbacks):
             custom_metrics[f"reconf_var_{a}"] = np.var(custom_metrics[f"reconf_times_{a}"])
             custom_metrics[f"reconf_sem_{a}"] = scipy.stats.sem(custom_metrics[f"reconf_times_{a}"])
 
+        custom_metrics["global_SE_mean"] = np.mean(custom_metrics["global_SE"])
+        custom_metrics["global_SE_var"] = np.var(custom_metrics["global_SE"])
+        custom_metrics["global_SE_sem"] = scipy.stats.sem(custom_metrics["global_SE"])
+        
         episode_rew = evaluation_metrics[ENV_RUNNER_RESULTS]["hist_stats"]["episode_reward"]
         custom_metrics["rew_mean_episode"] = np.mean(episode_rew)
         custom_metrics["rew_var_episode"] = np.var(episode_rew)
@@ -176,10 +189,10 @@ config = (
     )
     .resources(num_gpus = 1)
     .training(
-        train_batch_size = 64,
+        train_batch_size = collect_steps,
         lr = 1e-3,
-        collect_size = collect_steps,
-        train_times_per_step = 0.5,
+        # collect_size = collect_steps,
+        # train_times_per_step = 0.5,
     )
     .evaluation(
         evaluation_interval = 1,
@@ -209,12 +222,19 @@ config.exploration_config.update({
     "epsilon_timesteps": 160000,
 })
 
+# config.replay_buffer_config.update({
+#     "capacity": 6000*20,
+# })
+
+config["num_sgd_iter"] = 5
+config["sgd_minibatch_size"] = 64
+
 res = tune.Tuner(
     NSREQ,
     param_space=config.to_dict(),
     run_config=air.RunConfig(
         storage_path = exp_folder,
-        stop={"training_iteration":40},
+        stop={"training_iteration":80},
         checkpoint_config = air.CheckpointConfig(
             checkpoint_frequency = 1
         )

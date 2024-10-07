@@ -118,7 +118,8 @@ class EmbbSlice(base_slice.BasicRanSlice):
         total_n_send = stat.groupby("CQI")["nSend"].sum()
         total_tx_pac_size = stat.groupby("CQI")["tx_pacSizeSum"].sum()
         self.stat = (total_throughput, total_tx_throughput, max_delay, total_n_recv, total_pac_size, total_n_send, total_tx_pac_size, total_n_recvstep)
-        self.SE = (self.stat[0].sum()*1000*1000) / (180000 * self.current_RB) # bps/Hz
+        self.total_throughput_sum_in_MB = total_throughput.sum()
+        self.SE = (self.total_throughput_sum_in_MB*1000000) / (180000 * self.current_RB) # bps/Hz
 
     def get_reward(self):
         # Calculate SLA violation
@@ -190,7 +191,9 @@ class EmbbSlice(base_slice.BasicRanSlice):
             "SLA_violation": self.SLA_violation,
             "bad_SE": self.bad_SE,
             "changed_RB": self.changed_RB,
-            "changes_RB_rew": (1-int(self.changed_RB))*5
+            "changes_RB_rew": (1-int(self.changed_RB))*5,
+            "throughput": self.total_throughput_sum_in_MB,
+            "RB": self.current_RB
             }
     
     def get_observation(self, if_log=True):
