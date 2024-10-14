@@ -15,10 +15,13 @@ import scipy
 import numpy as np
 import pprint
 
-from expfolder_allocator import path_allocator
+from ..utils.expfolder_allocator import path_allocator
 import os
 import pickle
 from pathlib import Path
+
+from ..utils.ray_callbacks import SaPrjCallbacks
+
 
 eval_episodes = 3
 
@@ -55,83 +58,10 @@ def eval_env_sina2_creator(env_config):
 register_env("sina2_train", train_env_sina2_creator)
 register_env("sina2_eval", eval_env_sina2_creator)
 
-class MyCallbacks(DefaultCallbacks):
-    def on_episode_start(
-        self,
-        *,
-        worker,
-        base_env,
-        policies,
-        episode,
-        env_index,
-        **kwargs,
-    ):
-        # Create a new user_data dict for this episode.
-        episode.user_data["sla_vio_times"] = 0
-        episode.user_data["reconf_times"] = 0
-
-    def on_episode_step(
-        self,
-        *,
-        worker,
-        base_env,
-        policies,
-        episode,
-        env_index,
-        **kwargs,
-    ):
-        # Make sure this episode is ongoing.
-        assert episode.length > 0, (
-            "ERROR: `on_episode_step()` callback should not be called right "
-            f"after env reset! {episode.length}"
-        )
-        sla = episode.last_info_for()["SLA_violation"]
-        reconf = int(episode.last_info_for()["changed_RB"])
-
-        episode.user_data["sla_vio_times"] += sla
-        episode.user_data["reconf_times"] += reconf
-
-    def on_episode_end(
-        self,
-        *,
-        worker,
-        base_env,
-        policies,
-        episode,
-        env_index,
-        **kwargs,
-    ):
-        episode.custom_metrics["sla_vio_times"] = episode.user_data["sla_vio_times"]
-        episode.custom_metrics["reconf_times"] = episode.user_data["reconf_times"]
-
-    def on_evaluate_end(
-        self,
-        *,
-        algorithm,
-        metrics_logger = None,
-        evaluation_metrics,
-        **kwargs,
-    ) -> None:
-        custom_metrics = evaluation_metrics[ENV_RUNNER_RESULTS]["custom_metrics"]
-        sla = custom_metrics["sla_vio_times"]
-        custom_metrics["sla_vio_mean"] = np.mean(sla)
-        custom_metrics["sla_vio_var"] = np.var(sla)
-        custom_metrics["sla_vio_sem"] = scipy.stats.sem(sla)
-
-        reconf = custom_metrics["reconf_times"]
-        custom_metrics["reconf_mean"] = np.mean(reconf)
-        custom_metrics["reconf_var"] = np.var(reconf)
-        custom_metrics["reconf_sem"] = scipy.stats.sem(reconf)
-
-        rew = evaluation_metrics[ENV_RUNNER_RESULTS]["hist_stats"]["episode_reward"]
-        custom_metrics["rew_mean"] = np.mean(rew)
-        custom_metrics["rew_var"] = np.var(rew)
-        custom_metrics["rew_sem"] = scipy.stats.sem(rew)
-        pprint.pprint(custom_metrics)
-
-        path = path_allocator(os.path.join(exp_folder, "eval_metrics.pkl") , is_directory=False)
-        with open(path, "wb") as f:
-            pickle.dump(custom_metrics, f)
+class MyCallbacks(SaPrjCallbacks):
+    def __init__(self):
+        super().__init__()
+        self.exp_folder = exp_folder
 
 config = (
     NSREQConfig()
