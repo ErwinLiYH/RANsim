@@ -10,7 +10,7 @@ def path_allocator(base_namepath: str, linker:str = "_", is_directory: bool = Tr
         path = f"{base_namepath}{linker}{i}"
         if not os.path.exists(path):
             if is_directory:
-                os.mkdir(path)
+                os.makedirs(path)
             return path
         else:
             i += 1

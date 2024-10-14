@@ -31,7 +31,7 @@ train_steps_per_runner = episode_len
 train_runner = 20
 train_steps = train_steps_per_runner * train_runner
 
-exp_folder = path_allocator("exp", "")
+exp_folder = path_allocator("exps/exp", "")
 exp_folder = Path(exp_folder).resolve().as_posix()
 print("experiment result path:", exp_folder)
 

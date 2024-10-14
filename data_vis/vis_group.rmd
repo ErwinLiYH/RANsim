@@ -17,7 +17,7 @@ library(patchwork)
 Change here:
 
 ```{r}
-base_path <- "/home/yl1118/Desktop/RANsim/"
+base_path <- "/home/yl1118/Desktop/RANsim/exps/"
 directories <- c(
   # "exp19",
   # "exp28",

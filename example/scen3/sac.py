@@ -33,7 +33,7 @@ train_runner = 20
 collect_steps_per_runner = 300
 batch_size = train_runner * collect_steps_per_runner
 
-exp_folder = path_allocator("exp", "")
+exp_folder = path_allocator("exps/exp", "")
 exp_folder = Path(exp_folder).resolve().as_posix()
 print("experiment result path:", exp_folder)
 print("gamma:", gamma)

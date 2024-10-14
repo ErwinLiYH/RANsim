@@ -6,7 +6,7 @@ import os
 import glob
 import pprint
 
-EXP_PATH  = "../exp46/"
+EXP_PATH  = "../exps/exp46/"
 with_se = True
 
 # %%
