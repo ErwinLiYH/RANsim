@@ -5,13 +5,13 @@ from ray.tune.registry import register_env
 from ray.rllib.utils.metrics import ENV_RUNNER_RESULTS
 from ray.rllib.env.wrappers.pettingzoo_env import ParallelPettingZooEnv
 from ray.rllib.connectors.env_to_module import FlattenObservations
-from ray.rllib.algorithms.sac import SAC, SACConfig
+from ray.rllib.algorithms.dqn import DQN, DQNConfig
 
 # ransim envs
 from ransim_env.envs import sinario_three
 
 # control experiment result path
-from expfolder_allocator import path_allocator
+from ..utils.expfolder_allocator import path_allocator
 
 # general python libs
 import os
@@ -20,7 +20,7 @@ import re
 import pprint
 import sys
 
-from ray_callbacks import PrjCallbacks
+from ..utils.ray_callbacks import MaPrjCallbacks
 
 
 gamma = float(sys.argv[1])
@@ -61,13 +61,13 @@ def eval_env_sina3_creator(env_config):
 register_env("sina3_train", train_env_sina3_creator)
 register_env("sina3_eval", eval_env_sina3_creator)
 
-class MyCallbacks(PrjCallbacks):
+class MyCallbacks(MaPrjCallbacks):
     def __init__(self):
         super().__init__()
         self.exp_folder = exp_folder
 
 config = (
-    SACConfig()
+    DQNConfig()
     .environment("sina3_train")
     .framework("torch")
     .env_runners(
@@ -114,7 +114,7 @@ config.replay_buffer_config.update({
 })
 
 res = tune.Tuner(
-    SAC,
+    DQN,
     param_space=config.to_dict(),
     run_config=air.RunConfig(
         storage_path = exp_folder,

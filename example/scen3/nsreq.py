@@ -1,42 +1,47 @@
 # ray libs
 import ray
 from ray import tune, air
+from ray.rllib.evaluation.episode_v2 import EpisodeV2
 from ray.tune.registry import register_env
+from ray.rllib.algorithms.callbacks import DefaultCallbacks
 from ray.rllib.utils.metrics import ENV_RUNNER_RESULTS
 from ray.rllib.env.wrappers.pettingzoo_env import ParallelPettingZooEnv
 from ray.rllib.connectors.env_to_module import FlattenObservations
-from ray.rllib.algorithms.dqn import DQN, DQNConfig
 
 # ransim envs
 from ransim_env.envs import sinario_three
 
+# ESEQR config and algorithm
+from rllib_nsreq import NSREQConfig, NSREQ
+
+# for stats calculation
+import scipy
+import numpy as np
+
 # control experiment result path
-from expfolder_allocator import path_allocator
+from ..utils.expfolder_allocator import path_allocator
 
 # general python libs
 import os
+import pickle
 from pathlib import Path
 import re
 import pprint
-import sys
 
-from ray_callbacks import PrjCallbacks
+from ..utils.ray_callbacks import MaPrjCallbacks
 
-
-gamma = float(sys.argv[1])
 
 eval_episodes = 10
 
 episode_len = 300
 
-train_runner = 20
 collect_steps_per_runner = 300
-batch_size = train_runner * collect_steps_per_runner
+train_runner = 20
+collect_steps = collect_steps_per_runner * train_runner
 
 exp_folder = path_allocator("exp", "")
 exp_folder = Path(exp_folder).resolve().as_posix()
 print("experiment result path:", exp_folder)
-print("gamma:", gamma)
 
 ray.init()
 
@@ -61,13 +66,13 @@ def eval_env_sina3_creator(env_config):
 register_env("sina3_train", train_env_sina3_creator)
 register_env("sina3_eval", eval_env_sina3_creator)
 
-class MyCallbacks(PrjCallbacks):
+class MyCallbacks(MaPrjCallbacks):
     def __init__(self):
         super().__init__()
         self.exp_folder = exp_folder
 
 config = (
-    DQNConfig()
+    NSREQConfig()
     .environment("sina3_train")
     .framework("torch")
     .env_runners(
@@ -75,14 +80,16 @@ config = (
         num_envs_per_env_runner = 1,
         num_cpus_per_env_runner = 1,
         rollout_fragment_length = collect_steps_per_runner,
-        batch_mode = "complete_episodes",
+        batch_mode = "truncate_episodes",
         sample_timeout_s = 6000,
         env_to_module_connector=lambda env: FlattenObservations(multi_agent=True)
     )
     .resources(num_gpus = 1)
     .training(
-        gamma = gamma,
-        train_batch_size = batch_size,
+        train_batch_size = collect_steps,
+        lr = 1e-3,
+        # collect_size = collect_steps,
+        # train_times_per_step = 0.5,
     )
     .evaluation(
         evaluation_interval = 1,
@@ -106,22 +113,28 @@ config = (
     .callbacks(MyCallbacks)
 )
 
-config["num_sgd_iter"] = 20
-config["sgd_minibatch_size"] = 64
-
-config.replay_buffer_config.update({
-    "type": "MultiAgentReplayBuffer",
+config.exploration_config.update({
+    "initial_epsilon": 0.9,
+    "final_epsilon": 0.2,
+    "epsilon_timesteps": 160000,
 })
 
+# config.replay_buffer_config.update({
+#     "capacity": 6000*20,
+# })
+
+config["num_sgd_iter"] = 5
+config["sgd_minibatch_size"] = 64
+
 res = tune.Tuner(
-    DQN,
+    NSREQ,
     param_space=config.to_dict(),
     run_config=air.RunConfig(
         storage_path = exp_folder,
         stop={"training_iteration":80},
         checkpoint_config = air.CheckpointConfig(
             checkpoint_frequency = 1
-        ),
+        )
     )
 ).fit()
 

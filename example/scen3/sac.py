@@ -2,20 +2,16 @@
 import ray
 from ray import tune, air
 from ray.tune.registry import register_env
-from ray.rllib.algorithms.callbacks import DefaultCallbacks
+from ray.rllib.utils.metrics import ENV_RUNNER_RESULTS
 from ray.rllib.env.wrappers.pettingzoo_env import ParallelPettingZooEnv
 from ray.rllib.connectors.env_to_module import FlattenObservations
-from ray.rllib.algorithms.ppo import PPO, PPOConfig
+from ray.rllib.algorithms.sac import SAC, SACConfig
 
 # ransim envs
 from ransim_env.envs import sinario_three
 
-# for stats calculation
-import scipy
-import numpy as np
-
 # control experiment result path
-from expfolder_allocator import path_allocator
+from ..utils.expfolder_allocator import path_allocator
 
 # general python libs
 import os
@@ -24,7 +20,7 @@ import re
 import pprint
 import sys
 
-from ray_callbacks import PrjCallbacks
+from ..utils.ray_callbacks import MaPrjCallbacks
 
 
 gamma = float(sys.argv[1])
@@ -65,13 +61,13 @@ def eval_env_sina3_creator(env_config):
 register_env("sina3_train", train_env_sina3_creator)
 register_env("sina3_eval", eval_env_sina3_creator)
 
-class MyCallbacks(PrjCallbacks):
+class MyCallbacks(MaPrjCallbacks):
     def __init__(self):
         super().__init__()
         self.exp_folder = exp_folder
 
 config = (
-    PPOConfig()
+    SACConfig()
     .environment("sina3_train")
     .framework("torch")
     .env_runners(
@@ -87,14 +83,6 @@ config = (
     .training(
         gamma = gamma,
         train_batch_size = batch_size,
-        lr = 1e-3,
-        # use_critic = False,
-        # use_gae = False,
-        kl_coeff = 0,
-        use_kl_loss = False,
-        clip_param = 0.3,
-        num_sgd_iter = 20,
-        sgd_minibatch_size = 64,
     )
     .evaluation(
         evaluation_interval = 1,
@@ -118,15 +106,22 @@ config = (
     .callbacks(MyCallbacks)
 )
 
+config["num_sgd_iter"] = 20
+config["sgd_minibatch_size"] = 64
+
+config.replay_buffer_config.update({
+    "type": "MultiAgentReplayBuffer",
+})
+
 res = tune.Tuner(
-    PPO,
+    SAC,
     param_space=config.to_dict(),
     run_config=air.RunConfig(
         storage_path = exp_folder,
         stop={"training_iteration":80},
         checkpoint_config = air.CheckpointConfig(
             checkpoint_frequency = 1
-        )
+        ),
     )
 ).fit()
 
