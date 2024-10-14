@@ -1,72 +1,17 @@
-# ray libs
-import ray
-from ray import tune, air
-from ray.rllib.evaluation.episode_v2 import EpisodeV2
-from ray.tune.registry import register_env
 from ray.rllib.algorithms.callbacks import DefaultCallbacks
 from ray.rllib.utils.metrics import ENV_RUNNER_RESULTS
-from ray.rllib.env.wrappers.pettingzoo_env import ParallelPettingZooEnv
-from ray.rllib.connectors.env_to_module import FlattenObservations
-from ray.rllib.algorithms.ppo import PPO, PPOConfig
+from ray.rllib.evaluation.episode_v2 import EpisodeV2
 
-# ransim envs
-from ransim_env.envs import sinario_three
+from expfolder_allocator import path_allocator
 
-# for stats calculation
 import scipy
 import numpy as np
 
-# control experiment result path
-from expfolder_allocator import path_allocator
-
-# general python libs
-import os
 import pickle
-from pathlib import Path
+import os
 import re
-import pprint
-import sys
 
-
-gamma = float(sys.argv[1])
-
-eval_episodes = 10
-
-episode_len = 300
-
-train_runner = 20
-collect_steps_per_runner = 150
-batch_size = train_runner * collect_steps_per_runner
-
-exp_folder = path_allocator("exp", "")
-exp_folder = Path(exp_folder).resolve().as_posix()
-print("experiment result path:", exp_folder)
-print("gamma:", gamma)
-
-ray.init()
-
-def train_env_sina3_creator(env_config):
-    return ParallelPettingZooEnv(sinario_three.SinarioThree(
-            f"train_{env_config.worker_index}", episode_len,
-            unchange_terminate = 0,
-            root_path=os.path.join(exp_folder, f"train_{env_config.worker_index}"),
-            no_termi=True,
-            plot = False
-        ))
-
-def eval_env_sina3_creator(env_config):
-    return ParallelPettingZooEnv(sinario_three.SinarioThree(
-            f"eval_{env_config.worker_index}", episode_len,
-            unchange_terminate = 0,
-            root_path=os.path.join(exp_folder, f"eval_{env_config.worker_index}"),
-            no_termi=True,
-            plot = True
-        ))
-
-register_env("sina3_train", train_env_sina3_creator)
-register_env("sina3_eval", eval_env_sina3_creator)
-
-class MyCallbacks(DefaultCallbacks):
+class PrjCallbacks(DefaultCallbacks):
     def on_episode_start(
         self,
         *,
@@ -80,6 +25,7 @@ class MyCallbacks(DefaultCallbacks):
         # Create a new user_data dict for this episode.
         episode.user_data["sla_vio_times"] = {}
         episode.user_data["reconf_times"] = {}
+        episode.user_data["global_SEs"] = []
         # on start, the get_agents() will return empty list
 
     def on_episode_step(
@@ -99,6 +45,8 @@ class MyCallbacks(DefaultCallbacks):
         )
         # get agents
         agents = episode.get_agents()
+        total_throughput = 0
+        total_RB = 0
         for a in agents:
             sla = episode.last_info_for(a)["SLA_violation"]
             reconf = int(episode.last_info_for(a)["changed_RB"])
@@ -111,6 +59,11 @@ class MyCallbacks(DefaultCallbacks):
                 episode.user_data["reconf_times"][a] = reconf
             else:
                 episode.user_data["reconf_times"][a] += reconf
+
+            total_throughput += episode.last_info_for(a)["throughput"]
+            total_RB += episode.last_info_for(a)["RB"]
+
+        episode.user_data["global_SEs"].append((total_throughput*1000000) / (180000 * total_RB))
 
     def on_episode_end(
         self,
@@ -125,6 +78,7 @@ class MyCallbacks(DefaultCallbacks):
         for a in episode.get_agents():
             episode.custom_metrics[f"sla_vio_times_{a}"] = episode.user_data["sla_vio_times"][a]
             episode.custom_metrics[f"reconf_times_{a}"] = episode.user_data["reconf_times"][a]
+        episode.custom_metrics["global_SE"] = sum(episode.user_data["global_SEs"])/episode.length
 
     def on_evaluate_end(
         self,
@@ -148,6 +102,10 @@ class MyCallbacks(DefaultCallbacks):
             custom_metrics[f"reconf_var_{a}"] = np.var(custom_metrics[f"reconf_times_{a}"])
             custom_metrics[f"reconf_sem_{a}"] = scipy.stats.sem(custom_metrics[f"reconf_times_{a}"])
 
+        custom_metrics["global_SE_mean"] = np.mean(custom_metrics["global_SE"])
+        custom_metrics["global_SE_var"] = np.var(custom_metrics["global_SE"])
+        custom_metrics["global_SE_sem"] = scipy.stats.sem(custom_metrics["global_SE"])
+        
         episode_rew = evaluation_metrics[ENV_RUNNER_RESULTS]["hist_stats"]["episode_reward"]
         custom_metrics["rew_mean_episode"] = np.mean(episode_rew)
         custom_metrics["rew_var_episode"] = np.var(episode_rew)
@@ -159,63 +117,7 @@ class MyCallbacks(DefaultCallbacks):
             custom_metrics[f"rew_var_{p}"] = np.var(evaluation_metrics[ENV_RUNNER_RESULTS]["hist_stats"][f"policy_{p}_reward"])
             custom_metrics[f"rew_sem_{p}"] = scipy.stats.sem(evaluation_metrics[ENV_RUNNER_RESULTS]["hist_stats"][f"policy_{p}_reward"])
 
+        exp_folder = self.exp_folder
         path = path_allocator(os.path.join(exp_folder, "evaluation_metrics.pkl") , is_directory=False)
         with open(path, "wb") as f:
             pickle.dump(evaluation_metrics, f)
-
-config = (
-    PPOConfig()
-    .environment("sina3_train")
-    .framework("torch")
-    .env_runners(
-        num_env_runners = train_runner,
-        num_envs_per_env_runner = 1,
-        num_cpus_per_env_runner = 1,
-        rollout_fragment_length = collect_steps_per_runner,
-        batch_mode = "truncate_episodes",
-        sample_timeout_s = 6000,
-        env_to_module_connector=lambda env: FlattenObservations(multi_agent=True)
-    )
-    .resources(num_gpus = 1)
-    .training(
-        gamma = gamma,
-        train_batch_size = batch_size,
-        lr = 1e-3,
-    )
-    .evaluation(
-        evaluation_interval = 1,
-        evaluation_duration = eval_episodes,
-        evaluation_duration_unit = "episodes",
-        evaluation_sample_timeout_s = 6000,
-        evaluation_num_env_runners = eval_episodes,
-        evaluation_parallel_to_training = True,
-        evaluation_config = {
-            "env": "sina3_eval",
-            "explore": False,
-            "callbacks": MyCallbacks,
-        }
-    )
-    .multi_agent(
-        policies = {'p0', 'p1' ,'p2'},
-        policy_mapping_fn=lambda aid, episode, worker: re.sub("^agent_", "p", aid),
-        count_steps_by = "env_steps"
-    )
-    .reporting(keep_per_episode_custom_metrics=True)
-    .callbacks(MyCallbacks)
-)
-
-res = tune.Tuner(
-    PPO,
-    param_space=config.to_dict(),
-    run_config=air.RunConfig(
-        storage_path = exp_folder,
-        stop={"training_iteration":40},
-        checkpoint_config = air.CheckpointConfig(
-            checkpoint_frequency = 1
-        )
-    )
-).fit()
-
-print(res)
-print("------------------------------- result -------------------------------")
-pprint.pprint(res._results)
