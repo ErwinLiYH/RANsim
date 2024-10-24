@@ -308,7 +308,7 @@ class MarlStation(ParallelEnv):
             while True:
                 obs = self.simple_step()
                 n_skip_times += 1
-                has_no_zero = any([any([i != 0 for i in o[:, 2]]) for o in obs.values()])
+                has_no_zero = all([any([i != 0 for i in o[:, 2]]) for o in obs.values()])
                 if has_no_zero:
                     break
             if n_skip_times > 0:
