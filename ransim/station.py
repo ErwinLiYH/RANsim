@@ -216,6 +216,7 @@ class MarlStation(ParallelEnv):
         self.obs_process_fn = obs_process_fn
         self.logger = logger
         self.flatten_obs_and_state = flatten_obs_and_state
+        self.exceed_RB_times = 0
 
         self.reset_result = None   # To avoid repeated reset, reset() will set this value to the result of reset, step() will clean this value
         self.is_ready = False      # To avoid repeated warmup, warmup() will set this value to True, step() will set this value to False
@@ -346,6 +347,7 @@ class MarlStation(ParallelEnv):
                     "rx_throughputs": {},
                     "RBs": {},
                     "labels": [],
+                    "exceed_RB_times": self.exceed_RB_times,
                 }
                 for slice in self.Slice_lst:
                     sub_plot_data = slice.plot(os.path.join(self.root_path, f"{slice.name}_{self.episode}.png"))
@@ -387,16 +389,20 @@ class MarlStation(ParallelEnv):
                 # plot globally
                 fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 12))
                 
+                # ax1: throughput
                 for slice_name in global_plot_data["labels"]:
                     ax1.plot(global_plot_data["steps"], global_plot_data["tx_throughputs"][slice_name], label=slice_name)
                 ax1.set_xlabel('Steps')
                 ax1.set_ylabel('Throughput (Mb/s)')
                 ax1.legend()
+
+                # ax2: RB number
                 for slice_name in global_plot_data["labels"]:
                     ax2.plot(global_plot_data["steps"], global_plot_data["RBs"][slice_name], label=slice_name)
                 ax2.set_xlabel('Steps')
-                ax2.set_ylabel('Throughput (Mb/s)')
+                ax2.set_ylabel('RB number')
                 ax2.legend()
+
                 plt.tight_layout()
                 fig.savefig(os.path.join(self.root_path, f"global_{self.episode}.png"))
                 # save the global plot data
@@ -459,6 +465,7 @@ class MarlStation(ParallelEnv):
                     obs[a] = o.flatten()
 
             self.reset_result = (obs, info)
+            self.exceed_RB_times = 0
             return obs, info
     
     def step(self, action: dict):
@@ -480,6 +487,7 @@ class MarlStation(ParallelEnv):
                 actions[slice.name] = action[slice.name]*slice.RB_resolution + slice.min_RB
         if sum(actions.values()) > self.max_RB:
             exceed_RB = 1
+            self.exceed_RB_times+=1
         iteration_times = 0
         while sum(actions.values()) > self.max_RB:              # make sure sum of RBs is less than max_RB
             # random choose one slice to decrease
