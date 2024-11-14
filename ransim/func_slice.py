@@ -72,6 +72,8 @@ class EmbbSlice(base_slice.BasicRanSlice):
 
         self.obs_queue = deque(maxlen=3)
 
+        self.rewards = {}
+
         total_n_cqi = 0
         for i in CQI_info.values():
             total_n_cqi += i
@@ -151,33 +153,28 @@ class EmbbSlice(base_slice.BasicRanSlice):
         SE = self.SE
         if SE < self.SE_threshold:
             self.bad_SE = 1
+            self.efficient_se = 0
         else:
             self.bad_SE = 0
+            self.efficient_se = 1
         self.logger.info(f"bad_SE:{bool(self.bad_SE)}")
 
-        # Bandwidth changing panalty
-        # P = 1 if self.changed_RB else 0
-
         # Calculate reward
-        # reward = 1 * SE - 1 * SLA_violation # - 1 * P
-        if SLA_violation == 0:
-            if SE < self.SE_threshold:
-                reward = -5
-            else:
-                reward = (SE**3)/10
-        else: 
-            reward = -10
+        keep = 1-int(self.changed_RB)
 
-        # if self.changed_RB:
-        #     reward -= 5
+        r_se = (SE**3)/10
 
-        # low traffic fix: if traffic is low, and the min_RB is used, but the SE is sill bad, give a bonus
-        if self.current_RB == self.min_RB and self.bad_SE:
-            reward = 1
-            self.bad_SE = 0
+        r_sla = self.SLA_violation*(-100)
 
-        # keeping bonus
-        reward += (1-int(self.changed_RB))*5
+        r_reconf = keep*5
+
+        self.rewards = {
+            "se": r_se,
+            "sla": r_sla,
+            "reconf": r_reconf
+        }
+
+        reward = sum(self.rewards.values())
 
         if self.logger:
             self.logger.info(f"Reward: {reward}, SE: {SE}, SLA_violation: {SLA_violation}, delay_violation_rate: {delay_violation_rate}, throughput_violation_rate: {throughput_violation_rate}, deliv_rate: {deliv_rate}")
@@ -193,7 +190,10 @@ class EmbbSlice(base_slice.BasicRanSlice):
             "changed_RB": self.changed_RB,
             "changes_RB_rew": (1-int(self.changed_RB))*5,
             "throughput": self.total_throughput_sum_in_MB,
-            "RB": self.current_RB
+            "RB": self.current_RB,
+            "rewards": self.rewards.copy(),
+            "condition_funcs": {k:{"func": 1, "target": "RB"} for k in self.rewards.values()},
+            "lambdas": {"sla": 0, "se": 0, "reconf": 0.9}
             }
     
     def get_observation(self, if_log=True):
