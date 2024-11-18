@@ -69,6 +69,8 @@ process_data <- function(data, iteration_times) {
 ```
 
 ```{r}
+names <- list()
+
 sla_vio_all <- list()
 reconf_all <- list()
 reward_all <- list()
@@ -83,6 +85,12 @@ for (i in seq_along(directories)) {
   if (inherits(res, "try-error")) {
     name <- dir
   }
+
+  if (name %in% names) {
+    name <- paste0(name, "-", dir)
+  }
+
+  names[[i]] <- name
 
   iteration_times <- load_iter_times(dir)
 
