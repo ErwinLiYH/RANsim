@@ -75,6 +75,7 @@ sla_vio_all <- list()
 reconf_all <- list()
 reward_all <- list()
 se_all <- list()
+exceed_all <- list()
 
 for (i in seq_along(directories)) {
   dir <- directories[i]
@@ -100,12 +101,18 @@ for (i in seq_along(directories)) {
   res <- try({
     se_data <- load_data(dir, "se")
   })
+  res <- try({
+    exceed_data <- load_data(dir, "exceed_times")
+  })
 
   sla_vio_stats <- process_data(sla_vio_data, iteration_times)
   reconf_stats <- process_data(reconf_data, iteration_times)
   reward_stats <- process_data(reward_data, iteration_times)
   if (!inherits(res, "try-error")) {
     se_stats <- process_data(se_data, iteration_times)
+  }
+  if (!inherits(res, "try-error")) {
+    exceed_stats <- process_data(exceed_data, iteration_times)
   }
 
   sla_vio_stats$source <- name
@@ -114,12 +121,18 @@ for (i in seq_along(directories)) {
   if (!inherits(res, "try-error")) {
     se_stats$source <- name
   }
+  if (!inherits(res, "try-error")) {
+    exceed_stats$source <- name
+  }
 
   sla_vio_all[[i]] <- sla_vio_stats
   reconf_all[[i]] <- reconf_stats
   reward_all[[i]] <- reward_stats
   if (!inherits(res, "try-error")) {
     se_all[[i]] <- se_stats
+  }
+  if (!inherits(res, "try-error")) {
+    exceed_all[[i]] <- exceed_stats
   }
 }
 
@@ -129,6 +142,9 @@ reconf_all <- do.call(rbind, reconf_all)
 reward_all <- do.call(rbind, reward_all)
 if (length(se_all) > 0) {
   se_all <- do.call(rbind, se_all)
+}
+if (length(exceed_all) > 0) {
+  exceed_all <- do.call(rbind, exceed_all)
 }
 ```
 
@@ -178,9 +194,22 @@ if (length(se_all) > 0) {
 }
 ```
 
-```{r fig.width=10, fig.height=15}
-if (length(se_all) > 0) {
-  rewp / sep / sla_viop / reconfp
+```{r}
+if (length(exceed_all) > 0) {
+  exceedp = ggplot(data = exceed_all, aes(x = evaluation, y = mean, color = source)) +
+  geom_ribbon(aes(ymin = lower, ymax = upper, fill = source), alpha = 0.2, color = NA) +
+  geom_line() +
+  labs(title = "Comparison of Exceed Times between Algorithms",
+       x = "Iterations",
+       y = "Mean Exceed Times") +
+  theme_minimal() +
+  theme(legend.title = element_blank())
+}
+```
+
+```{r fig.width=15, fig.height=10}
+if (length(se_all) > 0 && length(exceed_all) > 0) {
+  ((rewp | sep) / (sla_viop | reconfp | exceedp)) + plot_layout(guides = 'collect')
 }else {
   rewp / sla_viop / reconfp
 }
