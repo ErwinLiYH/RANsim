@@ -101,7 +101,7 @@ for (i in seq_along(directories)) {
   res <- try({
     se_data <- load_data(dir, "se")
   })
-  res <- try({
+  res1 <- try({
     exceed_data <- load_data(dir, "exceed_times")
   })
 
@@ -111,7 +111,7 @@ for (i in seq_along(directories)) {
   if (!inherits(res, "try-error")) {
     se_stats <- process_data(se_data, iteration_times)
   }
-  if (!inherits(res, "try-error")) {
+  if (!inherits(res1, "try-error")) {
     exceed_stats <- process_data(exceed_data, iteration_times)
   }
 
@@ -121,7 +121,7 @@ for (i in seq_along(directories)) {
   if (!inherits(res, "try-error")) {
     se_stats$source <- name
   }
-  if (!inherits(res, "try-error")) {
+  if (!inherits(res1, "try-error")) {
     exceed_stats$source <- name
   }
 
@@ -131,7 +131,7 @@ for (i in seq_along(directories)) {
   if (!inherits(res, "try-error")) {
     se_all[[i]] <- se_stats
   }
-  if (!inherits(res, "try-error")) {
+  if (!inherits(res1, "try-error")) {
     exceed_all[[i]] <- exceed_stats
   }
 }
