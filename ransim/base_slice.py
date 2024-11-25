@@ -220,6 +220,7 @@ class BasicRanSlice:
         self.last_RB = initial_RB
         self.current_RB = initial_RB
         self.changed_RB = False
+        self.RB_variation = 0
         self.change_RB_queue = deque(maxlen=unchange_terminate)
         self.unchange_terminate = unchange_terminate
         self.min_RB = min_RB
@@ -448,10 +449,12 @@ class BasicRanSlice:
                 self.logger.info(f"UE {self.ids['UEs'][i]} handover to eNodeB with RB {N_RAB}")
                 lte_helper.HandoverRequest(ns.Seconds(0), self.ue_devices.Get(i), self.enb_divices[self.current_RB].Get(0), self.enb_divices[N_RAB].Get(0))
             self.changed_RB = True
+            self.RB_variation = abs(N_RAB - self.current_RB)
             self.accumulated_reconfig_times += 1
         else:
             self.logger.info(f"Retain in eNodeB with RB {N_RAB}")
             self.changed_RB = False
+            self.RB_variation = 0
         self.last_RB = self.current_RB
         self.current_RB = N_RAB
         self.change_RB_queue.append(self.changed_RB)
