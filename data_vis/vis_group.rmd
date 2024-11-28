@@ -20,8 +20,14 @@ Change here:
 ```{r}
 base_path <- "/home/yl1118/Desktop/RANsim/exps/"
 directories <- c(
-  "exp48",
-  "exp49"
+  # "exp44",
+  "exp51",
+  # "exp52",
+  # "exp53",
+  "exp55"
+  # "exp56",
+  # "exp57"
+  #"exp54"
 )
 ```
 
