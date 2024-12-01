@@ -2,7 +2,7 @@ from . import WarpperForPtP
 from gymnasium import spaces
 import numpy as np
 
-class SinarioFiveNoSF(WarpperForPtP):
+class ScenrioFiveNoSF(WarpperForPtP):
     def init_station(self):
         from ransim import func_slice
         from ransim_utils import utils
