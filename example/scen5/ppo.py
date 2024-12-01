@@ -45,7 +45,7 @@ print("gamma:", gamma)
 ray.init()
 
 def train_env_creator(env_config):
-    return ParallelPettingZooEnv(scenario_five_nosf.SinarioFiveNoSF(
+    return ParallelPettingZooEnv(scenario_five_nosf.ScenrioFiveNoSF(
             f"train_{env_config.worker_index}", episode_len,
             unchange_terminate = 0,
             root_path=os.path.join(exp_folder, f"train_{env_config.worker_index}"),
@@ -54,7 +54,7 @@ def train_env_creator(env_config):
         ))
 
 def eval_env_creator(env_config):
-    return ParallelPettingZooEnv(scenario_five_nosf.SinarioFiveNoSF(
+    return ParallelPettingZooEnv(scenario_five_nosf.ScenrioFiveNoSF(
             f"eval_{env_config.worker_index}", episode_len,
             unchange_terminate = 0,
             root_path=os.path.join(exp_folder, f"eval_{env_config.worker_index}"),
