@@ -88,11 +88,6 @@ config = (
         gamma = gamma,
         train_batch_size = batch_size,
         lr = 1e-3,
-        # use_critic = False,
-        # use_gae = False,
-        kl_coeff = 0,
-        use_kl_loss = False,
-        clip_param = 0.3,
         num_sgd_iter = 20,
         sgd_minibatch_size = 64,
     )
