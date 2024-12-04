@@ -20,21 +20,21 @@ class SinarioFive(WarpperForPtP):
 
         assigner = utils.PortAssigner()
 
-        # max throughtput = 20Mbps
+        # max throughtput = 10Mbps+8Mbps, distr=N(5,1.25)+N(4,4)=N(9,5.25), 3theta throughtput(99.73%) = 15.87Mbps
         onoff_configs1 = [[], []]
         for _ in range(20):
             onoff_configs1[0].append(utils.OnOffAppConfig(0.1, 99999, data_rate="0.5Mb/s", port=assigner(), on_time=rv_string, off_time=rv_string))
         for _ in range(10, 14):
             onoff_configs1[1].append(utils.OnOffAppConfig(0.1, 99999, data_rate="2Mb/s", port=assigner(), on_time=rv_string, off_time=rv_string))
 
-        # max throughtput = 20Mbps
+        # max throughtput = 10Mbps+8Mbps, distr=N(5,1.25)+N(4,4)=N(9,5.25), 3theta throughtput(99.73%) = 15.87Mbps
         onoff_configs2 = [[], []]
         for _ in range(20):
             onoff_configs2[0].append(utils.OnOffAppConfig(0.1, 99999, data_rate="0.5Mb/s", port=assigner(), on_time=rv_string, off_time=rv_string))
         for _ in range(10, 14):
             onoff_configs2[1].append(utils.OnOffAppConfig(0.1, 99999, data_rate="2Mb/s", port=assigner(), on_time=rv_string, off_time=rv_string))
 
-        # max throughtput = 20Mbps
+        # max throughtput = 10Mbps+8Mbps, distr=N(5,1.25)+N(4,4)=N(9,5.25), 3theta throughtput(99.73%) = 15.87Mbps
         onoff_configs3 = [[], []]
         for _ in range(20):
             onoff_configs3[0].append(utils.OnOffAppConfig(0.1, 99999, data_rate="0.5Mb/s", port=assigner(), on_time=rv_string, off_time=rv_string))

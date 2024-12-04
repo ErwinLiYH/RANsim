@@ -26,22 +26,24 @@ class ScenarioFour(WarpperForPtP):
 
         assigner = utils.PortAssigner()
 
-        # 0.9999 max throughput = 30.94 Mbps
+        # eMBB conf
+        # max throughtput = 10Mbps+8Mbps, distr=N(5,1.25)+N(4,4)=N(9,5.25), 3theta throughtput(99.73%) = 15.87Mbps
         onoff_configs1 = [[], []]
         for _ in range(20):
-            onoff_configs1[0].append(utils.OnOffAppConfig(0.1, 99999, data_rate="1Mb/s", port=assigner(), on_time=rv_string1, off_time=rv_string1))
+            onoff_configs1[0].append(utils.OnOffAppConfig(0.1, 99999, data_rate="0.5Mb/s", port=assigner(), on_time=rv_string1, off_time=rv_string1))
         for _ in range(20, 24):
-            onoff_configs1[1].append(utils.OnOffAppConfig(0.1, 99999, data_rate="3Mb/s", port=assigner(), on_time=rv_string1, off_time=rv_string1))
+            onoff_configs1[1].append(utils.OnOffAppConfig(0.1, 99999, data_rate="2Mb/s", port=assigner(), on_time=rv_string1, off_time=rv_string1))
 
-        # 0.9999 max throughput = 12.75 Mbps
+        # uRLLC conf
+        # max throughtput = 20Mbps, distr=N(5,3.75), 3theta throughtput(99.73%) = 10.8Mbps
         onoff_configs2 = [[]]
         for _ in range(20):
             onoff_configs2[0].append(utils.OnOffAppConfig(0.1, 99999, data_rate="1Mb/s", port=assigner(), on_time=rv_string2, off_time=rv_string3, packet_size=64))
 
-        # 0.9999 max throughput = 18.57 Mbps
+        # max throughtput = 250Mbps, distr=N(4.9,2.4), 3theta throughtput(99.73%) = 9.547Mbps
         onoff_configs3 = [[]]
-        for _ in range(1000):
-            onoff_configs3[0].append(utils.OnOffAppConfig(0.1, 99999, data_rate="0.5Mb/s", port=assigner(), on_time=rv_string4, off_time=rv_string5, packet_size=64))
+        for _ in range(500):
+            onoff_configs3[0].append(utils.OnOffAppConfig(0.1, 99999, data_rate="0.5Mb/s", port=assigner(), on_time=rv_string4, off_time=rv_string5, packet_size=128))
 
         sink_config = utils.SinkAppConfig(0, 99999)
 
