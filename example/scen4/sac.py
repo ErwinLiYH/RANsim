@@ -30,7 +30,7 @@ eval_episodes = 10
 episode_len = 300
 
 train_runner = 20
-collect_steps_per_runner = 100
+collect_steps_per_runner = 300
 batch_size = train_runner * collect_steps_per_runner
 
 exp_folder = path_allocator("exps/exp", "")

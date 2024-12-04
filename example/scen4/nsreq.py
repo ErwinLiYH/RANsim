@@ -32,7 +32,7 @@ eval_episodes = 10
 
 episode_len = 300
 
-collect_steps_per_runner = 100
+collect_steps_per_runner = 300
 train_runner = 20
 collect_steps = collect_steps_per_runner * train_runner
 
