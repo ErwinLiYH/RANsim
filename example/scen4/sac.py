@@ -8,7 +8,7 @@ from ray.rllib.connectors.env_to_module import FlattenObservations
 from ray.rllib.algorithms.sac import SAC, SACConfig
 
 # ransim envs
-from ransim_env.envs import scenario_four
+from ransim_env.envs import scenario_four_nosf
 
 # control experiment result path
 from ..utils.expfolder_allocator import path_allocator
@@ -27,7 +27,7 @@ gamma = float(sys.argv[1])
 
 eval_episodes = 10
 
-episode_len = 100
+episode_len = 300
 
 train_runner = 20
 collect_steps_per_runner = 100
@@ -40,8 +40,8 @@ print("gamma:", gamma)
 
 ray.init()
 
-def train_env_scen4_creator(env_config):
-    return ParallelPettingZooEnv(scenario_four.ScenarioFour(
+def train_env_creator(env_config):
+    return ParallelPettingZooEnv(scenario_four_nosf.ScenarioFourNoSF(
             f"train_{env_config.worker_index}", episode_len,
             unchange_terminate = 0,
             root_path=os.path.join(exp_folder, f"train_{env_config.worker_index}"),
@@ -49,8 +49,8 @@ def train_env_scen4_creator(env_config):
             plot = False
         ))
 
-def eval_env_scen4_creator(env_config):
-    return ParallelPettingZooEnv(scenario_four.ScenarioFour(
+def eval_env_creator(env_config):
+    return ParallelPettingZooEnv(scenario_four_nosf.ScenarioFourNoSF(
             f"eval_{env_config.worker_index}", episode_len,
             unchange_terminate = 0,
             root_path=os.path.join(exp_folder, f"eval_{env_config.worker_index}"),
@@ -58,8 +58,8 @@ def eval_env_scen4_creator(env_config):
             plot = True
         ))
 
-register_env("scen4_train", train_env_scen4_creator)
-register_env("scen4_eval", eval_env_scen4_creator)
+register_env("ransim_train", train_env_creator)
+register_env("ransim_eval", eval_env_creator)
 
 class MyCallbacks(MaPrjCallbacks):
     def __init__(self):
@@ -68,7 +68,7 @@ class MyCallbacks(MaPrjCallbacks):
 
 config = (
     SACConfig()
-    .environment("scen4_train")
+    .environment("ransim_train")
     .framework("torch")
     .env_runners(
         num_env_runners = train_runner,
@@ -79,7 +79,7 @@ config = (
         sample_timeout_s = 6000,
         env_to_module_connector=lambda env: FlattenObservations(multi_agent=True)
     )
-    .resources(num_gpus = 1)
+    .resources(num_gpus = 0)
     .training(
         gamma = gamma,
         train_batch_size = batch_size,
@@ -92,7 +92,7 @@ config = (
         evaluation_num_env_runners = eval_episodes,
         evaluation_parallel_to_training = True,
         evaluation_config = {
-            "env": "scen4_eval",
+            "env": "ransim_eval",
             "explore": False,
             "callbacks": MyCallbacks,
         }

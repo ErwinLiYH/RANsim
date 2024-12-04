@@ -30,7 +30,7 @@ from ..utils.ray_callbacks import MaPrjCallbacks
 
 eval_episodes = 10
 
-episode_len = 100
+episode_len = 300
 
 collect_steps_per_runner = 100
 train_runner = 20
@@ -42,7 +42,7 @@ print("experiment result path:", exp_folder)
 
 ray.init()
 
-def train_env_scen4_creator(env_config):
+def train_env_creator(env_config):
     return ParallelPettingZooEnv(scenario_four.ScenarioFour(
             f"train_{env_config.worker_index}", episode_len,
             unchange_terminate = 0,
@@ -51,7 +51,7 @@ def train_env_scen4_creator(env_config):
             plot = False
         ))
 
-def eval_env_scen4_creator(env_config):
+def eval_env_creator(env_config):
     return ParallelPettingZooEnv(scenario_four.ScenarioFour(
             f"eval_{env_config.worker_index}", episode_len,
             unchange_terminate = 0,
@@ -60,8 +60,8 @@ def eval_env_scen4_creator(env_config):
             plot = True
         ))
 
-register_env("scen4_train", train_env_scen4_creator)
-register_env("scen4_eval", eval_env_scen4_creator)
+register_env("ransim_train", train_env_creator)
+register_env("ransim_eval", eval_env_creator)
 
 class MyCallbacks(MaPrjCallbacks):
     def __init__(self):
@@ -70,7 +70,7 @@ class MyCallbacks(MaPrjCallbacks):
 
 config = (
     NSREQConfig()
-    .environment("scen4_train")
+    .environment("ransim_train")
     .framework("torch")
     .env_runners(
         num_env_runners = train_runner,
@@ -96,7 +96,7 @@ config = (
         evaluation_num_env_runners = eval_episodes,
         evaluation_parallel_to_training = True,
         evaluation_config = {
-            "env": "scen4_eval",
+            "env": "ransim_eval",
             "explore": False,
             "callbacks": MyCallbacks,
         }
