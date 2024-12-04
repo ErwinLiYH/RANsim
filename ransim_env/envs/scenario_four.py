@@ -83,13 +83,3 @@ class ScenarioFour(WarpperForPtP):
         env = station.MarlStation(self.env_name, [embb_slice, urllc_slice, mmtc_slice], self.max_step, logger=station_log, warmup_times=5, step_time=0.1, plot=self.plot, root_path=self.root_path)
 
         return env
-
-def upper(n, a, b, t):
-    mean = n*(a/(a+b))
-    var = (n*(a/(a+b))*(b/(a+b)))**0.5
-    mean_t = mean*t
-    var_t = var*t
-    upper_t_0 = mean_t+2*var_t
-    upper_t_1 = mean_t+3*var_t
-    upper_t_2 = mean_t+4*var_t
-    print(f"mean: {mean_t}\nvar: {var_t}\nupper: {upper_t_0}\n99.7 upper: {upper_t_1}\n99.99 upper: {upper_t_2}")
