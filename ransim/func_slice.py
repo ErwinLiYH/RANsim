@@ -186,6 +186,7 @@ class EmbbSlice(base_slice.BasicRanSlice):
     def get_rl_info(self):
         return {
             "SLA_violation": self.SLA_violation,
+            "SE": self.SE,
             "bad_SE": self.bad_SE,
             "changed_RB": self.changed_RB,
             "changes_RB_rew": (1-int(self.changed_RB))*5,

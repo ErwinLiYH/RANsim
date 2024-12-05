@@ -530,7 +530,7 @@ class MarlStation(ParallelEnv):
         if exceed_RB == 1:
             if self.logger:
                 self.logger.warning(f"Exceed the maximum RBs in episode {self.episode} step {base_slice.step}, do actions: {actions} instead of {action}")
-            reward = {agent: -20 for agent, _ in reward.items()}
+            reward = {agent: (-(100/info[agent]["SE"]) if info[agent]["SE"]!=0 else 0) for agent, _ in reward.items()}
 
         base_slice.step_records()
         base_slice.clean_all_buffer_record()
