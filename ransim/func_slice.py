@@ -162,7 +162,7 @@ class EmbbSlice(base_slice.BasicRanSlice):
         # Calculate reward
         keep = 1-int(self.changed_RB)
 
-        r_se = (SE**3)/10
+        r_se = 10*SE
 
         r_sla = self.SLA_violation*(-100)
 
