@@ -8,7 +8,7 @@ from ray.rllib.connectors.env_to_module import FlattenObservations
 from ray.rllib.algorithms.dqn import DQN, DQNConfig
 
 # ransim envs
-from ransim_env.envs import sinario_three
+from ransim_env.envs import scenario_three_nosf
 
 # control experiment result path
 from ..utils.expfolder_allocator import path_allocator
@@ -40,8 +40,8 @@ print("gamma:", gamma)
 
 ray.init()
 
-def train_env_sina3_creator(env_config):
-    return ParallelPettingZooEnv(sinario_three.SinarioThree(
+def train_env_creator(env_config):
+    return ParallelPettingZooEnv(scenario_three_nosf.ScenarioThreeNoSF(
             f"train_{env_config.worker_index}", episode_len,
             unchange_terminate = 0,
             root_path=os.path.join(exp_folder, f"train_{env_config.worker_index}"),
@@ -49,8 +49,8 @@ def train_env_sina3_creator(env_config):
             plot = False
         ))
 
-def eval_env_sina3_creator(env_config):
-    return ParallelPettingZooEnv(sinario_three.SinarioThree(
+def eval_env_creator(env_config):
+    return ParallelPettingZooEnv(scenario_three_nosf.ScenarioThreeNoSF(
             f"eval_{env_config.worker_index}", episode_len,
             unchange_terminate = 0,
             root_path=os.path.join(exp_folder, f"eval_{env_config.worker_index}"),
@@ -58,8 +58,8 @@ def eval_env_sina3_creator(env_config):
             plot = True
         ))
 
-register_env("sina3_train", train_env_sina3_creator)
-register_env("sina3_eval", eval_env_sina3_creator)
+register_env("ransim_train", train_env_creator)
+register_env("ransim_eval", eval_env_creator)
 
 class MyCallbacks(MaPrjCallbacks):
     def __init__(self):
@@ -68,7 +68,7 @@ class MyCallbacks(MaPrjCallbacks):
 
 config = (
     DQNConfig()
-    .environment("sina3_train")
+    .environment("ransim_train")
     .framework("torch")
     .env_runners(
         num_env_runners = train_runner,
@@ -92,7 +92,7 @@ config = (
         evaluation_num_env_runners = eval_episodes,
         evaluation_parallel_to_training = True,
         evaluation_config = {
-            "env": "sina3_eval",
+            "env": "ransim_eval",
             "explore": False,
             "callbacks": MyCallbacks,
         }
