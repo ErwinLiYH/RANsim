@@ -50,7 +50,7 @@ ns.Config.SetDefault("ns3::LteSpectrumPhy::CtrlErrorModelEnabled", ns.BooleanVal
 ns.Config.SetDefault("ns3::LteSpectrumPhy::DataErrorModelEnabled", ns.BooleanValue(0))
 
 # The delay in TTI units that occurs between a scheduling decision in the MAC and the actual start of the transmission by the PHY. Initial value: 2.
-ns.Config.SetDefault("ns3::LteEnbPhy::MacToChannelDelay", ns.UintegerValue(1))
+ns.Config.SetDefault("ns3::LteEnbPhy::MacToChannelDelay", ns.UintegerValue(0))
 
 TCP = "ns3::TcpSocketFactory"
 UDP = "ns3::UdpSocketFactory"

@@ -18,8 +18,8 @@ class ScenarioFour(WarpperForPtP):
 
         rv_string1 = "ns3::ExponentialRandomVariable[Mean=15]"
 
-        rv_string2 = "ns3::ExponentialRandomVariable[Mean=10]"
-        rv_string3 = "ns3::ExponentialRandomVariable[Mean=30]"
+        rv_string2 = "ns3::ExponentialRandomVariable[Mean=5]"
+        rv_string3 = "ns3::ExponentialRandomVariable[Mean=10]"
 
         rv_string4 = "ns3::ExponentialRandomVariable[Mean=1]"
         rv_string5 = "ns3::ExponentialRandomVariable[Mean=50]"
@@ -35,7 +35,7 @@ class ScenarioFour(WarpperForPtP):
             onoff_configs1[1].append(utils.OnOffAppConfig(0.1, 99999, data_rate="2Mb/s", port=assigner(), on_time=rv_string1, off_time=rv_string1))
 
         # uRLLC conf
-        # max throughtput = 20Mbps, distr=N(5,3.75), 3theta throughtput(99.73%) = 10.8Mbps
+        # max throughtput = 20Mbps, distr=N(6.6667,4.4444), 3theta throughtput(99.73%) = 12.99Mbps
         onoff_configs2 = [[]]
         for _ in range(20):
             onoff_configs2[0].append(utils.OnOffAppConfig(0.1, 99999, data_rate="1Mb/s", port=assigner(), on_time=rv_string2, off_time=rv_string3, packet_size=64))
@@ -49,18 +49,18 @@ class ScenarioFour(WarpperForPtP):
 
         embb_sla = {
             1: {
-                "delay": 0.01,  # 10ms
+                "delay": 0.05,  # 50ms
                 "throughput": 5,
             },
             7:{
-                "delay": 0.05,  # 50ms
+                "delay": 0.1,  # 100ms
                 "throughput": 10,
             }
         }
 
         urllc_sla = {
             1: {
-                "delay": 0.005,  # 5ms
+                "delay": 0.01,  # 10ms
                 "throughput": 5,
             }
         }
