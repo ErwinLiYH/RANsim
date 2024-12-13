@@ -45,11 +45,11 @@ class SinarioFive(WarpperForPtP):
 
         embb_sla = {
             1: {
-                "delay": 0.01,
+                "delay": 0.05,      # 50 ms
                 "throughput": 5,
             },
             7:{
-                "delay": 0.05,
+                "delay": 0.1,     # 100 ms
                 "throughput": 10,
             }
         }
