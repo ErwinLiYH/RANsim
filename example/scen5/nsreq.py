@@ -27,9 +27,12 @@ import pickle
 from pathlib import Path
 import re
 import pprint
+import sys
 
 from ..utils.ray_callbacks import MaPrjCallbacks
 
+
+gpus = int(sys.argv[1])
 
 eval_episodes = 10
 
@@ -84,7 +87,7 @@ config = (
         sample_timeout_s = 6000,
         env_to_module_connector=lambda env: FlattenObservations(multi_agent=True)
     )
-    .resources(num_gpus = 1)
+    .resources(num_gpus = gpus)
     .training(
         train_batch_size = collect_steps,
         lr = 1e-3,

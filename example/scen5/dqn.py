@@ -24,6 +24,7 @@ from ..utils.ray_callbacks import MaPrjCallbacks
 
 
 gamma = float(sys.argv[1])
+gpus = int(sys.argv[2])
 
 eval_episodes = 10
 
@@ -79,7 +80,7 @@ config = (
         sample_timeout_s = 6000,
         env_to_module_connector=lambda env: FlattenObservations(multi_agent=True)
     )
-    .resources(num_gpus = 1)
+    .resources(num_gpus = gpus)
     .training(
         gamma = gamma,
         train_batch_size = batch_size,
