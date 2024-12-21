@@ -51,18 +51,18 @@ class ScenarioFourNoSF(WarpperForPtP):
 
         embb_sla = {
             1: {
-                "delay": 0.01,  # 10ms
+                "delay": 0.05,  # 50ms
                 "throughput": 5,
             },
             7:{
-                "delay": 0.05,  # 50ms
+                "delay": 0.1,  # 100ms
                 "throughput": 10,
             }
         }
 
         urllc_sla = {
             1: {
-                "delay": 0.005,  # 5ms
+                "delay": 0.01,  # 10ms
                 "throughput": 5,
             }
         }
