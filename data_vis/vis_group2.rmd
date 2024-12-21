@@ -1,0 +1,234 @@
+---
+title: "Visualization ray evaluation"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE}
+library(ggplot2)
+library(stats)
+library(dplyr)
+library(patchwork)
+library(yaml)
+library(ggsci)
+library(showtext)
+```
+
+Change here:
+
+```{r}
+font_add("Times New Roman", regular = "/usr/share/fonts/truetype/msttcorefonts/times.ttf")
+showtext_auto()
+
+interval <- 50
+base_path <- "/home/yl1118/Desktop/RANsim/exps/"
+plot_path <- "/home/yl1118/Desktop/RANsim/exps/result_plot/scen7/"
+directories <- c(
+  # scen 6
+  # "exp82",
+  # "exp83",
+  # "exp84",
+  # "exp85"
+
+  # scen 7
+  "exp86",
+  "exp87",
+  "exp88",
+  "exp89"
+)
+```
+
+Utility functions:
+
+```{r}
+load_data <- function(dir_name, metric) {
+  file_path <- paste0(base_path, dir_name, "/", metric, ".csv")
+  return(read.csv(file_path))
+}
+
+load_name <- function(dir_name) {
+  file_path <- paste0(base_path, dir_name, "/", "info", ".yaml")
+  return(yaml.load_file(file_path)$name)
+}
+
+load_iter_times <- function(dir_name) {
+  file_path <- paste0(base_path, dir_name, "/", "info", ".yaml")
+  times <- yaml.load_file(file_path)$iter_times
+  if (is.null(times)) {
+    times <- 1
+  }
+  return(times)
+}
+
+process_data <- function(data, iteration_times, interval) {
+  if (!is.numeric(iteration_times) || iteration_times <= 0) {
+    stop("iteration_times must be a positive integer")
+  }
+
+  processed_data <- data %>%
+    mutate(evaluation = row_number() * iteration_times) %>%
+    filter(evaluation %% interval == 0) %>%
+    rowwise() %>%
+    mutate(
+      mean = mean(c_across(-c(evaluation)), na.rm = TRUE),
+      sd = sd(c_across(-c(evaluation)), na.rm = TRUE),
+      upper = mean + 1.96 * sd / sqrt(length(na.omit(c_across(-c(evaluation))))),
+      lower = mean - 1.96 * sd / sqrt(length(na.omit(c_across(-c(evaluation)))))
+    ) %>%
+    ungroup() %>%
+    select(evaluation, mean, upper, lower)
+  
+  return(processed_data)
+}
+```
+
+```{r}
+names <- list()
+
+accu_sla_all <- list()
+accu_reconf_all <- list()
+se_all <- list()
+
+for (i in seq_along(directories)) {
+  dir <- directories[i]
+
+  res <- try({
+    name <- load_name(dir)
+  })
+  if (inherits(res, "try-error")) {
+    name <- dir
+  }
+
+  if (name %in% names) {
+    name <- paste0(name, "-", dir)
+  }
+
+  names[[i]] <- name
+
+  iteration_times <- load_iter_times(dir)
+
+  sla_vio_data <- load_data(dir, "accu_sla")
+  reconf_data <- load_data(dir, "accu_reconf")
+  se_data <- load_data(dir, "average_se")
+
+  sla_vio_stats <- process_data(sla_vio_data, iteration_times, interval)
+  reconf_stats <- process_data(reconf_data, iteration_times, interval)
+  se_stats <- process_data(se_data, iteration_times, interval)
+
+  sla_vio_stats$source <- name
+  reconf_stats$source <- name
+  se_stats$source <- name
+
+  accu_sla_all[[i]] <- sla_vio_stats
+  accu_reconf_all[[i]] <- reconf_stats
+  se_all[[i]] <- se_stats
+}
+
+accu_sla_all <- do.call(rbind, accu_sla_all)
+accu_reconf_all <- do.call(rbind, accu_reconf_all)
+se_all <- do.call(rbind, se_all)
+```
+
+
+set color:
+```{r}
+simulate_alpha <- function(color, alpha) {
+  rgb_vals <- grDevices::col2rgb(color) / 255
+  blended_rgb <- (1 - alpha) * 1 + alpha * rgb_vals
+  grDevices::rgb(blended_rgb[1], blended_rgb[2], blended_rgb[3], maxColorValue = 1)
+}
+main_colors <- pal_npg("nrc", alpha = 1)(4)
+main_colors <- setNames(main_colors, names)
+fill_colors <- sapply(main_colors, function(color) simulate_alpha(color, 0.2))
+fill_colors <- setNames(fill_colors, names)
+
+print(main_colors)
+print(fill_colors)
+```
+
+```{r}
+slap = ggplot(data = accu_sla_all, aes(x = evaluation, y = mean, color = source)) +
+  geom_ribbon(aes(ymin = lower, ymax = upper, fill = source), color = NA) +
+  geom_line(size=0.8) +
+  scale_fill_manual(values = fill_colors) +
+  scale_color_manual(values = main_colors) +
+  labs(x = "Steps",
+       y = "Mean Episode Reward") +
+  theme_minimal() +
+  theme(
+    legend.position = c(0.2, 0.8),   # scen 3 / 4
+    plot.title = element_text(hjust = 0.5),
+    panel.border = element_rect(color = "black", fill = NA, size = 1),
+
+    text = element_text(family = "Times New Roman"),
+    axis.title.x = element_text(size = 22),
+    axis.title.y = element_text(size = 22),
+    axis.text.x = element_text(size = 18),
+    axis.text.y = element_text(size = 18),
+
+    legend.text = element_text(size = 24)
+    ) +
+  theme(legend.title = element_blank())
+
+# ggsave(paste0(plot_path, "rew.eps"), plot = slap, width = 6, height = 5, device = "eps")
+ggsave(paste0(plot_path, "sla.eps"), plot = slap, width = 8, height = 5, device = "eps")
+```
+
+```{r}
+sep = ggplot(data = se_all, aes(x = evaluation, y = mean, color = source)) +
+  geom_ribbon(aes(ymin = lower, ymax = upper, fill = source), color = NA) +
+  geom_line(size=0.8) +
+  scale_fill_manual(values = fill_colors) +
+  scale_color_manual(values = main_colors) +
+  labs(x = "Steps",
+       y = "Mean Episode Reward") +
+  theme_minimal() +
+  theme(
+    legend.position = "none",   # scen 3 / 4
+    plot.title = element_text(hjust = 0.5),
+    panel.border = element_rect(color = "black", fill = NA, size = 1),
+
+    text = element_text(family = "Times New Roman"),
+    axis.title.x = element_text(size = 22),
+    axis.title.y = element_text(size = 22),
+    axis.text.x = element_text(size = 18),
+    axis.text.y = element_text(size = 18)
+    ) +
+  theme(legend.title = element_blank())
+
+# ggsave(paste0(plot_path, "rew.eps"), plot = sep, width = 6, height = 5, device = "eps")
+ggsave(paste0(plot_path, "se.eps"), plot = sep, width = 8, height = 5, device = "eps")
+```
+
+```{r}
+reconfp = ggplot(data = accu_reconf_all, aes(x = evaluation, y = mean, color = source)) +
+  geom_ribbon(aes(ymin = lower, ymax = upper, fill = source), color = NA) +
+  geom_line(size=0.8) +
+  scale_fill_manual(values = fill_colors) +
+  scale_color_manual(values = main_colors) +
+  labs(x = "Steps",
+       y = "Mean Episode Reward") +
+  theme_minimal() +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(hjust = 0.5),
+    panel.border = element_rect(color = "black", fill = NA, size = 1),
+
+    text = element_text(family = "Times New Roman"),
+    axis.title.x = element_text(size = 22),
+    axis.title.y = element_text(size = 22),
+    axis.text.x = element_text(size = 18),
+    axis.text.y = element_text(size = 18)
+    ) +
+  theme(legend.title = element_blank())
+
+# ggsave(paste0(plot_path, "rew.eps"), plot = reconfp, width = 6, height = 5, device = "eps")
+ggsave(paste0(plot_path, "reconf.eps"), plot = reconfp, width = 8, height = 5, device = "eps")
+```
+
+```{r fig.width=15, fig.height=8}
+slap / reconfp / sep
+```

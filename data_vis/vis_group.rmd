@@ -13,21 +13,52 @@ library(stats)
 library(dplyr)
 library(patchwork)
 library(yaml)
+library(ggsci)
+library(showtext)
 ```
 
 Change here:
 
 ```{r}
+font_add("Times New Roman", regular = "/usr/share/fonts/truetype/msttcorefonts/times.ttf")
+showtext_auto()
+
 base_path <- "/home/yl1118/Desktop/RANsim/exps/"
+plot_path <- "/home/yl1118/Desktop/RANsim/exps/result_plot/scen4/"
 directories <- c(
-  # "exp44",
-  "exp51",
-  # "exp52",
-  # "exp53",
-  "exp55"
-  # "exp56",
-  # "exp57"
-  #"exp54"
+  # scen3
+  # "exp58",  # mine
+  # "exp59",  # DQN
+  # "exp60"  # PPO
+
+  # scen4
+  # "exp65",   # mine
+  # "exp66",   # DQN
+  # "exp67",   # PPO
+  # "exp68"   # SAC
+
+  # scen3 linear reward
+  # "exp70",   # mine
+  # "exp71",   # DQN
+  # "exp72",   # PPO
+  # "exp73"   # SAC
+
+  # scen4 linear reward
+  "exp74",   # mine
+  "exp75",   # DQN
+  "exp76",   # PPO
+  "exp77"   # SAC
+
+  # scen5
+  # "exp61",  # PPO
+  # "exp63",     # mine
+  # "exp64"     # SAC
+
+  # scen 5 linear reward
+  # "exp78",  # mine
+  # "exp79",     # DQN
+  # "exp80",     # PPO
+  # "exp81"     # SAC
 )
 ```
 
@@ -154,66 +185,160 @@ if (length(exceed_all) > 0) {
 }
 ```
 
+
+set color:
+```{r}
+simulate_alpha <- function(color, alpha) {
+  rgb_vals <- grDevices::col2rgb(color) / 255  # 转换为 0~1 的 RGB 值
+  blended_rgb <- (1 - alpha) * 1 + alpha * rgb_vals  # 与白色混合
+  grDevices::rgb(blended_rgb[1], blended_rgb[2], blended_rgb[3], maxColorValue = 1)
+}
+main_colors <- pal_npg("nrc", alpha = 1)(4)
+main_colors <- setNames(main_colors, names)
+fill_colors <- sapply(main_colors, function(color) simulate_alpha(color, 0.2))
+fill_colors <- setNames(fill_colors, names)
+
+print(main_colors)
+print(fill_colors)
+```
+
 ```{r}
 rewp = ggplot(data = reward_all, aes(x = evaluation, y = mean, color = source)) +
-  geom_ribbon(aes(ymin = lower, ymax = upper, fill = source), alpha = 0.2, color = NA) +
-  geom_line() +
-  labs(title = "Comparison of Episode Reward between Algorithms",
-       x = "Iterations",
+  geom_ribbon(aes(ymin = lower, ymax = upper, fill = source), color = NA) +
+  geom_line(size=0.8) +
+  scale_fill_manual(values = fill_colors) +
+  scale_color_manual(values = main_colors) +
+  labs(x = "Iterations",
        y = "Mean Episode Reward") +
   theme_minimal() +
+  theme(
+    legend.position = c(0.8, 0.2),   # scen 3 / 4
+    plot.title = element_text(hjust = 0.5),
+    panel.border = element_rect(color = "black", fill = NA, size = 1),
+
+    text = element_text(family = "Times New Roman"),
+    axis.title.x = element_text(size = 22),
+    axis.title.y = element_text(size = 22),
+    axis.text.x = element_text(size = 18),
+    axis.text.y = element_text(size = 18),
+
+    legend.text = element_text(size = 24)
+    ) +
   theme(legend.title = element_blank())
+
+ggsave(paste0(plot_path, "rew.eps"), plot = rewp, width = 6, height = 5, device = "eps")
+# ggsave(paste0(plot_path, "rew.eps"), plot = rewp, width = 8, height = 5, device = "eps")
 ```
 
 ```{r}
 sla_viop = ggplot(data = sla_vio_all, aes(x = evaluation, y = mean, color = source)) +
-  geom_ribbon(aes(ymin = lower, ymax = upper, fill = source), alpha = 0.2, color = NA) +
-  geom_line() +
-  labs(title = "Comparison of SLA Violation between Algorithms",
-       x = "Iterations",
+  geom_ribbon(aes(ymin = lower, ymax = upper, fill = source), color = NA) +
+  geom_line(size=0.8) +
+  scale_fill_manual(values = fill_colors) +
+  scale_color_manual(values = main_colors) +
+  labs(x = "Iterations",
        y = "Mean SLA Violation") +
   theme_minimal() +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(hjust = 0.5),
+    panel.border = element_rect(color = "black", fill = NA, size = 1),
+
+    text = element_text(family = "Times New Roman", size = 12),
+    axis.title.x = element_text(size = 22),
+    axis.title.y = element_text(size = 22),
+    axis.text.x = element_text(size = 18),
+    axis.text.y = element_text(size = 18)
+    ) +
   theme(legend.title = element_blank())
+
+ggsave(paste0(plot_path, "sla.eps"), plot = sla_viop, width = 6, height = 5, device = "eps")
+# ggsave(paste0(plot_path, "sla.eps"), plot = sla_viop, width = 8, height = 5, device = "eps")
 ```
 
 ```{r}
 reconfp = ggplot(data = reconf_all, aes(x = evaluation, y = mean, color = source)) +
-  geom_ribbon(aes(ymin = lower, ymax = upper, fill = source), alpha = 0.2, color = NA) +
-  geom_line() +
-  labs(title = "Comparison of Reconfiguration Times between Algorithms",
-       x = "Iterations",
+  geom_ribbon(aes(ymin = lower, ymax = upper, fill = source), color = NA) +
+  geom_line(size=0.8) +
+  scale_fill_manual(values = fill_colors) +
+  scale_color_manual(values = main_colors) +
+  labs(x = "Iterations",
        y = "Mean Reconfiguration Times") +
   theme_minimal() +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(hjust = 0.5),
+    panel.border = element_rect(color = "black", fill = NA, size = 1),
+
+    text = element_text(family = "Times New Roman", size = 12),
+    axis.title.x = element_text(size = 22),
+    axis.title.y = element_text(size = 22),
+    axis.text.x = element_text(size = 18),
+    axis.text.y = element_text(size = 18)
+    ) +
   theme(legend.title = element_blank())
+
+ggsave(paste0(plot_path, "reconf.eps"), plot = reconfp, width = 6, height = 5, device = "eps")
+# ggsave(paste0(plot_path, "reconf.eps"), plot = reconfp, width = 8, height = 5, device = "eps")
 ```
 
 ```{r}
 if (length(se_all) > 0) {
   sep = ggplot(data = se_all, aes(x = evaluation, y = mean, color = source)) +
-  geom_ribbon(aes(ymin = lower, ymax = upper, fill = source), alpha = 0.2, color = NA) +
-  geom_line() +
-  labs(title = "Comparison of SE between Algorithms",
-       x = "Iterations",
-       y = "Mean SE") +
+  geom_ribbon(aes(ymin = lower, ymax = upper, fill = source), color = NA) +
+  geom_line(size=0.8) +
+  scale_fill_manual(values = fill_colors) +
+  scale_color_manual(values = main_colors) +
+  labs(x = "Iterations",
+       y = "Mean SE (Mbps/Hz)") +
   theme_minimal() +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(hjust = 0.5),
+    panel.border = element_rect(color = "black", fill = NA, size = 1),
+
+    text = element_text(family = "Times New Roman", size = 12),
+    axis.title.x = element_text(size = 22),
+    axis.title.y = element_text(size = 22),
+    axis.text.x = element_text(size = 18),
+    axis.text.y = element_text(size = 18)
+    ) +
   theme(legend.title = element_blank())
+
+ggsave(paste0(plot_path, "se.eps"), plot = sep, width = 6, height = 5, device = "eps")
+# ggsave(paste0(plot_path, "se.eps"), plot = sep, width = 8, height = 5, device = "eps")
 }
 ```
 
 ```{r}
 if (length(exceed_all) > 0) {
   exceedp = ggplot(data = exceed_all, aes(x = evaluation, y = mean, color = source)) +
-  geom_ribbon(aes(ymin = lower, ymax = upper, fill = source), alpha = 0.2, color = NA) +
-  geom_line() +
-  labs(title = "Comparison of Exceed Times between Algorithms",
-       x = "Iterations",
+  geom_ribbon(aes(ymin = lower, ymax = upper, fill = source), color = NA) +
+  geom_line(size=0.8) +
+  scale_fill_manual(values = fill_colors) +
+  scale_color_manual(values = main_colors) +
+  labs(x = "Iterations",
        y = "Mean Exceed Times") +
   theme_minimal() +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(hjust = 0.5),
+    panel.border = element_rect(color = "black", fill = NA, size = 1),
+
+    text = element_text(family = "Times New Roman", size = 12),
+    axis.title.x = element_text(size = 22),
+    axis.title.y = element_text(size = 22),
+    axis.text.x = element_text(size = 18),
+    axis.text.y = element_text(size = 18)
+    ) +
   theme(legend.title = element_blank())
+
+ggsave(paste0(plot_path, "exceed.eps"), plot = exceedp, width = 6, height = 5, device = "eps")
+# ggsave(paste0(plot_path, "exceed.eps"), plot = exceedp, width = 8, height = 5, device = "eps")
 }
 ```
 
-```{r fig.width=15, fig.height=10}
+```{r fig.width=15, fig.height=8}
 if (length(se_all) > 0 && length(exceed_all) > 0) {
   ((rewp | sep) / (sla_viop | reconfp | exceedp)) + plot_layout(guides = 'collect')
 }else {
