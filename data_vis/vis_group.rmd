@@ -15,6 +15,7 @@ library(patchwork)
 library(yaml)
 library(ggsci)
 library(showtext)
+library(cowplot)
 ```
 
 Change here:
@@ -23,8 +24,10 @@ Change here:
 font_add("Times New Roman", regular = "/usr/share/fonts/truetype/msttcorefonts/times.ttf")
 showtext_auto()
 
+n = 80
+
 base_path <- "/home/yl1118/Desktop/RANsim/exps/"
-plot_path <- "/home/yl1118/Desktop/RANsim/exps/result_plot/scen4/"
+plot_path <- "/home/yl1118/Desktop/RANsim/exps/result_plot/v2/scen3/"
 directories <- c(
   # scen3
   # "exp58",  # mine
@@ -38,16 +41,16 @@ directories <- c(
   # "exp68"   # SAC
 
   # scen3 linear reward
-  # "exp70",   # mine
-  # "exp71",   # DQN
-  # "exp72",   # PPO
-  # "exp73"   # SAC
+  "exp70",   # mine
+  "exp71",   # DQN
+  "exp72",   # PPO
+  "exp73"   # SAC
 
   # scen4 linear reward
-  "exp74",   # mine
-  "exp75",   # DQN
-  "exp76",   # PPO
-  "exp77"   # SAC
+  # "exp74",   # mine
+  # "exp75",   # DQN
+  # "exp76",   # PPO
+  # "exp77"   # SAC
 
   # scen5
   # "exp61",  # PPO
@@ -100,6 +103,8 @@ process_data <- function(data, iteration_times) {
     ) %>%
     ungroup() %>%
     select(evaluation, mean, upper, lower)
+
+    processed_data = head(processed_data, n)
   
   return(processed_data)
 }
@@ -195,11 +200,17 @@ simulate_alpha <- function(color, alpha) {
 }
 main_colors <- pal_npg("nrc", alpha = 1)(4)
 main_colors <- setNames(main_colors, names)
-fill_colors <- sapply(main_colors, function(color) simulate_alpha(color, 0.2))
+# fill_colors <- sapply(main_colors, function(color) simulate_alpha(color, 0.2))
+fill_colors <- pal_npg("nrc", alpha = 0.2)(4)
 fill_colors <- setNames(fill_colors, names)
 
 print(main_colors)
 print(fill_colors)
+```
+
+```{r}
+axis_title_size = 26
+axis_text_size = 22
 ```
 
 ```{r}
@@ -212,22 +223,23 @@ rewp = ggplot(data = reward_all, aes(x = evaluation, y = mean, color = source)) 
        y = "Mean Episode Reward") +
   theme_minimal() +
   theme(
-    legend.position = c(0.8, 0.2),   # scen 3 / 4
+    legend.position = c(0.7, 0.2),   # scen 3 / 4
+    # legend.position = "none", # scen 5
     plot.title = element_text(hjust = 0.5),
     panel.border = element_rect(color = "black", fill = NA, size = 1),
 
     text = element_text(family = "Times New Roman"),
-    axis.title.x = element_text(size = 22),
-    axis.title.y = element_text(size = 22),
-    axis.text.x = element_text(size = 18),
-    axis.text.y = element_text(size = 18),
+    axis.title.x = element_text(size = axis_title_size),
+    axis.title.y = element_text(size = axis_title_size),
+    axis.text.x = element_text(size = axis_text_size),
+    axis.text.y = element_text(size = axis_text_size),
 
-    legend.text = element_text(size = 24)
+    legend.text = element_text(size = 30)
     ) +
   theme(legend.title = element_blank())
 
-ggsave(paste0(plot_path, "rew.eps"), plot = rewp, width = 6, height = 5, device = "eps")
-# ggsave(paste0(plot_path, "rew.eps"), plot = rewp, width = 8, height = 5, device = "eps")
+ggsave(paste0(plot_path, "rew.pdf"), plot = rewp, width = 6, height = 5, device = "pdf")
+# ggsave(paste0(plot_path, "rew.pdf"), plot = rewp, width = 8, height = 5, device = "pdf")
 ```
 
 ```{r}
@@ -245,15 +257,15 @@ sla_viop = ggplot(data = sla_vio_all, aes(x = evaluation, y = mean, color = sour
     panel.border = element_rect(color = "black", fill = NA, size = 1),
 
     text = element_text(family = "Times New Roman", size = 12),
-    axis.title.x = element_text(size = 22),
-    axis.title.y = element_text(size = 22),
-    axis.text.x = element_text(size = 18),
-    axis.text.y = element_text(size = 18)
+    axis.title.x = element_text(size = axis_title_size),
+    axis.title.y = element_text(size = axis_title_size),
+    axis.text.x = element_text(size = axis_text_size),
+    axis.text.y = element_text(size = axis_text_size)
     ) +
   theme(legend.title = element_blank())
 
-ggsave(paste0(plot_path, "sla.eps"), plot = sla_viop, width = 6, height = 5, device = "eps")
-# ggsave(paste0(plot_path, "sla.eps"), plot = sla_viop, width = 8, height = 5, device = "eps")
+ggsave(paste0(plot_path, "sla.pdf"), plot = sla_viop, width = 6, height = 5, device = "pdf")
+# ggsave(paste0(plot_path, "sla.pdf"), plot = sla_viop, width = 8, height = 5, device = "pdf")
 ```
 
 ```{r}
@@ -271,15 +283,15 @@ reconfp = ggplot(data = reconf_all, aes(x = evaluation, y = mean, color = source
     panel.border = element_rect(color = "black", fill = NA, size = 1),
 
     text = element_text(family = "Times New Roman", size = 12),
-    axis.title.x = element_text(size = 22),
-    axis.title.y = element_text(size = 22),
-    axis.text.x = element_text(size = 18),
-    axis.text.y = element_text(size = 18)
+    axis.title.x = element_text(size = axis_title_size),
+    axis.title.y = element_text(size = axis_title_size),
+    axis.text.x = element_text(size = axis_text_size),
+    axis.text.y = element_text(size = axis_text_size)
     ) +
   theme(legend.title = element_blank())
 
-ggsave(paste0(plot_path, "reconf.eps"), plot = reconfp, width = 6, height = 5, device = "eps")
-# ggsave(paste0(plot_path, "reconf.eps"), plot = reconfp, width = 8, height = 5, device = "eps")
+ggsave(paste0(plot_path, "reconf.pdf"), plot = reconfp, width = 6, height = 5, device = "pdf")
+# ggsave(paste0(plot_path, "reconf.pdf"), plot = reconfp, width = 8, height = 5, device = "pdf")
 ```
 
 ```{r}
@@ -298,15 +310,15 @@ if (length(se_all) > 0) {
     panel.border = element_rect(color = "black", fill = NA, size = 1),
 
     text = element_text(family = "Times New Roman", size = 12),
-    axis.title.x = element_text(size = 22),
-    axis.title.y = element_text(size = 22),
-    axis.text.x = element_text(size = 18),
-    axis.text.y = element_text(size = 18)
+    axis.title.x = element_text(size = axis_title_size),
+    axis.title.y = element_text(size = axis_title_size),
+    axis.text.x = element_text(size = axis_text_size),
+    axis.text.y = element_text(size = axis_text_size)
     ) +
   theme(legend.title = element_blank())
 
-ggsave(paste0(plot_path, "se.eps"), plot = sep, width = 6, height = 5, device = "eps")
-# ggsave(paste0(plot_path, "se.eps"), plot = sep, width = 8, height = 5, device = "eps")
+ggsave(paste0(plot_path, "se.pdf"), plot = sep, width = 6, height = 5, device = "pdf")
+# ggsave(paste0(plot_path, "se.pdf"), plot = sep, width = 8, height = 5, device = "pdf")
 }
 ```
 
@@ -326,22 +338,31 @@ if (length(exceed_all) > 0) {
     panel.border = element_rect(color = "black", fill = NA, size = 1),
 
     text = element_text(family = "Times New Roman", size = 12),
-    axis.title.x = element_text(size = 22),
-    axis.title.y = element_text(size = 22),
-    axis.text.x = element_text(size = 18),
-    axis.text.y = element_text(size = 18)
+    axis.title.x = element_text(size = axis_title_size),
+    axis.title.y = element_text(size = axis_title_size),
+    axis.text.x = element_text(size = axis_text_size),
+    axis.text.y = element_text(size = axis_text_size)
     ) +
   theme(legend.title = element_blank())
 
-ggsave(paste0(plot_path, "exceed.eps"), plot = exceedp, width = 6, height = 5, device = "eps")
-# ggsave(paste0(plot_path, "exceed.eps"), plot = exceedp, width = 8, height = 5, device = "eps")
+ggsave(paste0(plot_path, "exceed.pdf"), plot = exceedp, width = 6, height = 5, device = "pdf")
+# ggsave(paste0(plot_path, "exceed.pdf"), plot = exceedp, width = 8, height = 5, device = "pdf")
 }
 ```
 
+```{r fig.width=12, fig.height=15}
+# scen5 only
+# temp_p <- rewp + theme(legend.position = "right", legend.key.size = unit(2, "lines"), legend.text = element_text(size = 30))
+# legend <- get_legend(temp_p)
+# legend_plot <- wrap_elements(legend)
+# scen5 <- (rewp | sla_viop) / (sep | reconfp) / (exceedp | legend_plot)
+# ggsave(paste0(plot_path, "scen5.pdf"), plot = scen5, width = 12, height = 15, device = "pdf")
+```
+
 ```{r fig.width=15, fig.height=8}
-if (length(se_all) > 0 && length(exceed_all) > 0) {
-  ((rewp | sep) / (sla_viop | reconfp | exceedp)) + plot_layout(guides = 'collect')
-}else {
-  rewp / sla_viop / reconfp
-}
+# if (length(se_all) > 0 && length(exceed_all) > 0) {
+#   ((rewp | sep) / (sla_viop | reconfp | exceedp)) + plot_layout(guides = 'collect')
+# }else {
+#   rewp / sla_viop / reconfp
+# }
 ```

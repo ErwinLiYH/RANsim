@@ -25,19 +25,19 @@ showtext_auto()
 
 interval <- 50
 base_path <- "/home/yl1118/Desktop/RANsim/exps/"
-plot_path <- "/home/yl1118/Desktop/RANsim/exps/result_plot/scen7/"
+plot_path <- "/home/yl1118/Desktop/RANsim/exps/result_plot/v2/scen6/"
 directories <- c(
   # scen 6
-  # "exp82",
-  # "exp83",
-  # "exp84",
-  # "exp85"
+  "exp82",
+  "exp83",
+  "exp84",
+  "exp85"
 
   # scen 7
-  "exp86",
-  "exp87",
-  "exp88",
-  "exp89"
+  # "exp86",
+  # "exp87",
+  # "exp88",
+  # "exp89"
 )
 ```
 
@@ -142,7 +142,8 @@ simulate_alpha <- function(color, alpha) {
 }
 main_colors <- pal_npg("nrc", alpha = 1)(4)
 main_colors <- setNames(main_colors, names)
-fill_colors <- sapply(main_colors, function(color) simulate_alpha(color, 0.2))
+# fill_colors <- sapply(main_colors, function(color) simulate_alpha(color, 0.2))
+fill_colors <- pal_npg("nrc", alpha = 0.2)(4)
 fill_colors <- setNames(fill_colors, names)
 
 print(main_colors)
@@ -156,35 +157,57 @@ slap = ggplot(data = accu_sla_all, aes(x = evaluation, y = mean, color = source)
   scale_fill_manual(values = fill_colors) +
   scale_color_manual(values = main_colors) +
   labs(x = "Steps",
-       y = "Mean Episode Reward") +
+       y = "SLA violation times") +
   theme_minimal() +
   theme(
-    legend.position = c(0.2, 0.8),   # scen 3 / 4
+    legend.position = c(0.3, 0.8),   # scen 3 / 4
     plot.title = element_text(hjust = 0.5),
     panel.border = element_rect(color = "black", fill = NA, size = 1),
 
     text = element_text(family = "Times New Roman"),
-    axis.title.x = element_text(size = 22),
-    axis.title.y = element_text(size = 22),
-    axis.text.x = element_text(size = 18),
-    axis.text.y = element_text(size = 18),
+    axis.title.x = element_text(size = 26),
+    axis.title.y = element_text(size = 26),
+    axis.text.x = element_text(size = 22),
+    axis.text.y = element_text(size = 22),
 
-    legend.text = element_text(size = 24)
+    legend.text = element_text(size = 30)
     ) +
   theme(legend.title = element_blank())
 
-# ggsave(paste0(plot_path, "rew.eps"), plot = slap, width = 6, height = 5, device = "eps")
-ggsave(paste0(plot_path, "sla.eps"), plot = slap, width = 8, height = 5, device = "eps")
+# ggsave(paste0(plot_path, "rew.pdf"), plot = slap, width = 6, height = 5, device = "pdf")
+ggsave(paste0(plot_path, "sla.pdf"), plot = slap, width = 6, height = 5, device = "pdf")
 ```
 
 ```{r}
-sep = ggplot(data = se_all, aes(x = evaluation, y = mean, color = source)) +
-  geom_ribbon(aes(ymin = lower, ymax = upper, fill = source), color = NA) +
-  geom_line(size=0.8) +
+# sep = ggplot(data = se_all, aes(x = evaluation, y = mean, color = source)) +
+#   geom_ribbon(aes(ymin = lower, ymax = upper, fill = source), color = NA) +
+#   geom_line(size=0.8) +
+#   scale_fill_manual(values = fill_colors) +
+#   scale_color_manual(values = main_colors) +
+#   labs(x = "Steps",
+#        y = "Mean Episode Reward") +
+#   theme_minimal() +
+#   theme(
+#     legend.position = "none",   # scen 3 / 4
+#     plot.title = element_text(hjust = 0.5),
+#     panel.border = element_rect(color = "black", fill = NA, size = 1),
+
+#     text = element_text(family = "Times New Roman"),
+#     axis.title.x = element_text(size = 26),
+#     axis.title.y = element_text(size = 26),
+#     axis.text.x = element_text(size = 22),
+#     axis.text.y = element_text(size = 22)
+#     ) +
+#   theme(legend.title = element_blank())
+
+sep <- ggplot(data = se_all, aes(x = source, y = mean, color = source)) +
+  stat_boxplot(geom = "errorbar", width = 0.5)+
+  geom_boxplot(aes(fill = source), linetype = "solid") +
+  geom_jitter(aes(color = source, notch = TRUE), size = 1.5, width = 0.2)+
   scale_fill_manual(values = fill_colors) +
   scale_color_manual(values = main_colors) +
-  labs(x = "Steps",
-       y = "Mean Episode Reward") +
+  labs(x = "Algorithms",
+       y = "SE") +
   theme_minimal() +
   theme(
     legend.position = "none",   # scen 3 / 4
@@ -192,15 +215,15 @@ sep = ggplot(data = se_all, aes(x = evaluation, y = mean, color = source)) +
     panel.border = element_rect(color = "black", fill = NA, size = 1),
 
     text = element_text(family = "Times New Roman"),
-    axis.title.x = element_text(size = 22),
-    axis.title.y = element_text(size = 22),
-    axis.text.x = element_text(size = 18),
-    axis.text.y = element_text(size = 18)
+    axis.title.x = element_text(size = 26),
+    axis.title.y = element_text(size = 26),
+    axis.text.x = element_text(size = 22),
+    axis.text.y = element_text(size = 22)
     ) +
   theme(legend.title = element_blank())
 
-# ggsave(paste0(plot_path, "rew.eps"), plot = sep, width = 6, height = 5, device = "eps")
-ggsave(paste0(plot_path, "se.eps"), plot = sep, width = 8, height = 5, device = "eps")
+# ggsave(paste0(plot_path, "rew.pdf"), plot = sep, width = 6, height = 5, device = "pdf")
+ggsave(paste0(plot_path, "se.pdf"), plot = sep, width = 6, height = 5, device = "pdf")
 ```
 
 ```{r}
@@ -210,7 +233,7 @@ reconfp = ggplot(data = accu_reconf_all, aes(x = evaluation, y = mean, color = s
   scale_fill_manual(values = fill_colors) +
   scale_color_manual(values = main_colors) +
   labs(x = "Steps",
-       y = "Mean Episode Reward") +
+       y = "Reconfiguration times") +
   theme_minimal() +
   theme(
     legend.position = "none",
@@ -218,17 +241,17 @@ reconfp = ggplot(data = accu_reconf_all, aes(x = evaluation, y = mean, color = s
     panel.border = element_rect(color = "black", fill = NA, size = 1),
 
     text = element_text(family = "Times New Roman"),
-    axis.title.x = element_text(size = 22),
-    axis.title.y = element_text(size = 22),
-    axis.text.x = element_text(size = 18),
-    axis.text.y = element_text(size = 18)
+    axis.title.x = element_text(size = 26),
+    axis.title.y = element_text(size = 26),
+    axis.text.x = element_text(size = 22),
+    axis.text.y = element_text(size = 22)
     ) +
   theme(legend.title = element_blank())
 
-# ggsave(paste0(plot_path, "rew.eps"), plot = reconfp, width = 6, height = 5, device = "eps")
-ggsave(paste0(plot_path, "reconf.eps"), plot = reconfp, width = 8, height = 5, device = "eps")
+# ggsave(paste0(plot_path, "rew.pdf"), plot = reconfp, width = 6, height = 5, device = "pdf")
+ggsave(paste0(plot_path, "reconf.pdf"), plot = reconfp, width = 6, height = 5, device = "pdf")
 ```
 
-```{r fig.width=15, fig.height=8}
+```{r fig.width=8, fig.height=24}
 slap / reconfp / sep
 ```
