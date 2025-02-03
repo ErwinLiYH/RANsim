@@ -17,9 +17,9 @@ class SinarioTwo(WarpperForGym):
 
         onoff_configs = [[], []]
         for i in range(10):
-            onoff_configs[0].append(utils.OnOffAppConfig(0.1, 99999, data_rate="1Mb/s", port=49153+i, on_time=rv_string, off_time=rv_string))
-        for i in range(10, 14):
-            onoff_configs[1].append(utils.OnOffAppConfig(0.1, 99999, data_rate="5Mb/s", port=49153+i, on_time=rv_string, off_time=rv_string))
+            onoff_configs[0].append(utils.OnOffAppConfig(0.1, 99999, data_rate="0.5Mb/s", port=49153+i, on_time=rv_string, off_time=rv_string))
+        for i in range(10, 12):
+            onoff_configs[1].append(utils.OnOffAppConfig(0.1, 99999, data_rate="2Mb/s", port=49153+i, on_time=rv_string, off_time=rv_string))
 
         sink_config = utils.SinkAppConfig(0, 99999)
 
