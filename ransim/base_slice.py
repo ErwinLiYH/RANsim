@@ -507,7 +507,6 @@ class BasicRanSlice:
     def clean_RB_record(self, initial_RB):
         self.last_RB = initial_RB
         self.current_RB = initial_RB
-        self.changed_RB = False
         self.change_RB_queue.clear()
 
     def __repr__(self) -> str:
