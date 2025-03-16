@@ -47,7 +47,7 @@ class SingelSliceStation(gym.Env):
 
         # Action space and observation space
         self.action_space = spaces.Discrete(len(slice.candidate_RBs))
-        self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(3,5), dtype=float)
+        self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(3,7), dtype=float)
 
         # Set location of eNodeBs and UEs
         self.Slice.set_enb_location(0)
@@ -74,7 +74,8 @@ class SingelSliceStation(gym.Env):
             while True:
                 obs = self.simple_step()
                 n_skip_times += 1
-                if any([i != 0 for i in obs[:, -3]]):
+                obs = np.atleast_2d(obs)
+                if any([i != 0 for i in obs[:, -5]]):
                     break
             if n_skip_times > 0:
                 self.logger.info(f"Skip {n_skip_times} times to avoid off time of onoff application.")

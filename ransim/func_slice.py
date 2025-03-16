@@ -213,13 +213,14 @@ class EmbbSlice(base_slice.BasicRanSlice):
         throughput = self.stat[1].sum()
         buffer_increase = 0.1*self.buffer_increase if self.buffer_increase != None else 0
         droped_size = 0.1*self.droped_size if self.droped_size != None else 0
-        obs = [self.current_RB, SE*10, self.stat[1].sum(), buffer_increase, droped_size]
+        obs = [self.current_RB, SE, self.stat[1].sum(), buffer_increase, droped_size, self.SLA_violation, int(self.changed_RB)]
         if len(self.obs_queue)==0:
-            for _ in range(3):
+            for _ in range(self.num_obs_history):
                 self.obs_queue.append(np.array(obs))
         else:
             self.obs_queue.append(np.array(obs))
         obs = np.stack(self.obs_queue)
+        obs = obs.squeeze()
         if self.logger and if_log:
             self.logger.info(f"Observation: {obs}")
         return obs
