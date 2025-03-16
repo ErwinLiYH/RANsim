@@ -144,7 +144,7 @@ class EmbbSlice(base_slice.BasicRanSlice):
         n_recv_step = self.stat[7].sum()
         n_send = self.stat[5].sum()
         deliv_rate = n_recv_step/n_send if n_send!=0 else 1
-        if deliv_rate<0.95:
+        if deliv_rate<0.90:
             SLA_violation = 1
 
         # if tx_throughput == 0, SLA_violation = 0
