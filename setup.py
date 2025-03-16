@@ -23,6 +23,7 @@ setuptools.setup(
     ],
     packages=setuptools.find_packages(),
     python_requires=">=3.8",
+    install_requires=["cppyy==2.4.1"],
     entry_points={
         'console_scripts': [
             'nsenv = ransimenvset:main',
