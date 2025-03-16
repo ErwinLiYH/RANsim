@@ -11,7 +11,8 @@ except ImportError:
 
 
 class WarpperForGym(gym.Env):
-    def __init__(self, env_name, max_step:int, unchange_terminate:int=0, plot:bool=False, root_path:str="./", no_termi = False):
+    def __init__(self, env_name, max_step:int, unchange_terminate:int=0, plot:bool=False, \
+                 root_path:str="./", no_termi = False, num_obs_history:int=3, warmup_times=10):
         self.env_name = env_name
         self.max_step = max_step
         self.unchange_terminate = unchange_terminate
@@ -20,6 +21,8 @@ class WarpperForGym(gym.Env):
         self.no_termi = no_termi
         if not os.path.exists(self.root_path):
             os.makedirs(self.root_path)
+        self.num_obs_history = num_obs_history
+        self.warmup_times = warmup_times
         self.station = self.init_station()
         self.observation_space = self.station.observation_space
         self.action_space = self.station.action_space
