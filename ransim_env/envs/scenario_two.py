@@ -18,7 +18,7 @@ class ScenarioTwo(WarpperForGym):
         onoff_configs = [[], []]
         for i in range(20):
             onoff_configs[0].append(utils.OnOffAppConfig(0.1, 99999, data_rate="0.5Mb/s", port=49153+i, on_time=rv_string, off_time=rv_string))
-        for i in range(20, 14):
+        for i in range(20, 24):
             onoff_configs[1].append(utils.OnOffAppConfig(0.1, 99999, data_rate="2Mb/s", port=49153+i, on_time=rv_string, off_time=rv_string))
 
         sink_config = utils.SinkAppConfig(0, 99999)
