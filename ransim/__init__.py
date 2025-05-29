@@ -54,3 +54,6 @@ ns.Config.SetDefault("ns3::LteEnbPhy::MacToChannelDelay", ns.UintegerValue(1))
 
 TCP = "ns3::TcpSocketFactory"
 UDP = "ns3::UdpSocketFactory"
+
+from .config import reset_random_seed
+reset_random_seed()

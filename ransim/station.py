@@ -1,5 +1,6 @@
 from ns import ns
 from . import base_slice
+from . import config
 import logging
 import gymnasium as gym
 from gymnasium import spaces
@@ -17,6 +18,8 @@ import warnings
 import pickle
 import matplotlib.pyplot as plt
 
+
+random.seed(config.get_random_seed())
 
 class SingelSliceStation(gym.Env):
     def __init__(self, env_name:str, slice:base_slice.BasicRanSlice, max_step, step_time=0.05, warmup_times=10, logger:None|logging.Logger = None, ue_range=100, plot=False, root_path:str="./"):

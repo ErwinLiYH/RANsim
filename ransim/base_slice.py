@@ -5,6 +5,7 @@ from collections import deque
 from ns import ns
 from ransim_utils.utils import SinkAppConfig, OnOffAppConfig, logging_helper, list_to_abbr_str
 import random
+from . import config
 
 import matplotlib.pyplot as plt
 
@@ -15,9 +16,9 @@ import pickle
 current_time = 0
 
 # Set random seed
-r = random.Random()
-randint = r.randint(0,100000)
-ns.RngSeedManager.SetSeed(randint)
+random.seed(config.get_random_seed())
+r = random.randint(0,100000)
+ns.RngSeedManager.SetSeed(r)
 
 # -------------------- DataFrames for recording Tx and Rx events --------------------
 
