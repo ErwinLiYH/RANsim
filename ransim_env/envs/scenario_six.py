@@ -61,12 +61,12 @@ class ScenarioSix(WarpperForPtP):
             }
         }
 
-        embb_slice = func_slice.EmbbSlice(2, {1:1, 7:1}, embb_sla, 26, onoff_configs1, sink_config, logger=embb_log, unlim_RB=True, RB_resolution=1, unchange_terminate=self.unchange_terminate, min_RB=6, max_RB=40, no_termi=self.no_termi)
+        embb_slice = func_slice.EmbbSlice(2, {1:1, 7:1}, embb_sla, 26, onoff_configs1, sink_config, logger=embb_log, unlim_RB=True, RB_resolution=1, unchange_terminate=self.unchange_terminate, min_RB=6, max_RB=40, no_termi=self.no_termi, num_obs_history=self.num_obs_history)
 
-        urllc_slice = func_slice.EmbbSlice(1, {1:1}, urllc_sla, 26, onoff_configs2, sink_config, logger=urllc_log, unlim_RB=True, RB_resolution=1, unchange_terminate=self.unchange_terminate, min_RB=6, max_RB=40, no_termi=self.no_termi)
+        urllc_slice = func_slice.EmbbSlice(1, {1:1}, urllc_sla, 26, onoff_configs2, sink_config, logger=urllc_log, unlim_RB=True, RB_resolution=1, unchange_terminate=self.unchange_terminate, min_RB=6, max_RB=40, no_termi=self.no_termi, num_obs_history=self.num_obs_history)
 
         base_slice.init_cellId_map(embb_slice.cellId2nodeId, urllc_slice.cellId2nodeId)
 
-        env = station.MarlStation(self.env_name, [embb_slice, urllc_slice], self.max_step, logger=station_log, warmup_times=5, step_time=0.1, plot=self.plot, root_path=self.root_path)
+        env = station.MarlStation(self.env_name, [embb_slice, urllc_slice], self.max_step, logger=station_log, warmup_times=self.warmup_times, step_time=0.1, plot=self.plot, root_path=self.root_path)
 
         return env

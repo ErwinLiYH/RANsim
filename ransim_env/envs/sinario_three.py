@@ -54,11 +54,11 @@ class SinarioThree(WarpperForPtP):
             }
         }
 
-        embb_slice1 = func_slice.EmbbSlice(2, {1:1, 7:1}, embb_sla, 26, onoff_configs1, sink_config, logger=embb_log1, unlim_RB=True, RB_resolution=1, unchange_terminate=self.unchange_terminate, min_RB=6, max_RB=40, no_termi=self.no_termi)
+        embb_slice1 = func_slice.EmbbSlice(2, {1:1, 7:1}, embb_sla, 26, onoff_configs1, sink_config, logger=embb_log1, unlim_RB=True, RB_resolution=1, unchange_terminate=self.unchange_terminate, min_RB=6, max_RB=40, no_termi=self.no_termi, num_obs_history=self.num_obs_history)
 
-        embb_slice2 = func_slice.EmbbSlice(2, {1:1, 7:1}, embb_sla, 26, onoff_configs2, sink_config, logger=embb_log2, unlim_RB=True, RB_resolution=1, unchange_terminate=self.unchange_terminate, min_RB=6, max_RB=40, no_termi=self.no_termi)
+        embb_slice2 = func_slice.EmbbSlice(2, {1:1, 7:1}, embb_sla, 26, onoff_configs2, sink_config, logger=embb_log2, unlim_RB=True, RB_resolution=1, unchange_terminate=self.unchange_terminate, min_RB=6, max_RB=40, no_termi=self.no_termi, num_obs_history=self.num_obs_history)
 
-        embb_slice3 = func_slice.EmbbSlice(2, {1:1, 7:1}, embb_sla, 26, onoff_configs3, sink_config, logger=embb_log3, unlim_RB=True, RB_resolution=1, unchange_terminate=self.unchange_terminate, min_RB=6, max_RB=40, no_termi=self.no_termi)
+        embb_slice3 = func_slice.EmbbSlice(2, {1:1, 7:1}, embb_sla, 26, onoff_configs3, sink_config, logger=embb_log3, unlim_RB=True, RB_resolution=1, unchange_terminate=self.unchange_terminate, min_RB=6, max_RB=40, no_termi=self.no_termi, num_obs_history=self.num_obs_history)
 
         base_slice.init_cellId_map(embb_slice1.cellId2nodeId, embb_slice2.cellId2nodeId, embb_slice3.cellId2nodeId)
 

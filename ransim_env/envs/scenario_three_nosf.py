@@ -56,15 +56,15 @@ class ScenarioThreeNoSF(WarpperForPtP):
             }
         }
 
-        embb_slice1 = func_slice.EmbbSlice(2, {1:1, 7:1}, embb_sla, 26, onoff_configs1, sink_config, logger=embb_log1, unlim_RB=True, RB_resolution=1, unchange_terminate=self.unchange_terminate, min_RB=6, max_RB=40, no_termi=self.no_termi)
+        embb_slice1 = func_slice.EmbbSlice(2, {1:1, 7:1}, embb_sla, 26, onoff_configs1, sink_config, logger=embb_log1, unlim_RB=True, RB_resolution=1, unchange_terminate=self.unchange_terminate, min_RB=6, max_RB=40, no_termi=self.no_termi, num_obs_history=self.num_obs_history)
 
-        embb_slice2 = func_slice.EmbbSlice(2, {1:1, 7:1}, embb_sla, 26, onoff_configs2, sink_config, logger=embb_log2, unlim_RB=True, RB_resolution=1, unchange_terminate=self.unchange_terminate, min_RB=6, max_RB=40, no_termi=self.no_termi)
+        embb_slice2 = func_slice.EmbbSlice(2, {1:1, 7:1}, embb_sla, 26, onoff_configs2, sink_config, logger=embb_log2, unlim_RB=True, RB_resolution=1, unchange_terminate=self.unchange_terminate, min_RB=6, max_RB=40, no_termi=self.no_termi, num_obs_history=self.num_obs_history)
 
-        embb_slice3 = func_slice.EmbbSlice(2, {1:1, 7:1}, embb_sla, 26, onoff_configs3, sink_config, logger=embb_log3, unlim_RB=True, RB_resolution=1, unchange_terminate=self.unchange_terminate, min_RB=6, max_RB=40, no_termi=self.no_termi)
+        embb_slice3 = func_slice.EmbbSlice(2, {1:1, 7:1}, embb_sla, 26, onoff_configs3, sink_config, logger=embb_log3, unlim_RB=True, RB_resolution=1, unchange_terminate=self.unchange_terminate, min_RB=6, max_RB=40, no_termi=self.no_termi, num_obs_history=self.num_obs_history)
 
         base_slice.init_cellId_map(embb_slice1.cellId2nodeId, embb_slice2.cellId2nodeId, embb_slice3.cellId2nodeId)
 
-        env = station.MarlStation(self.env_name, [embb_slice1, embb_slice2, embb_slice3], self.max_step, logger=station_log, warmup_times=5, step_time=0.1, plot=self.plot, root_path=self.root_path, obs_process_fn=lambda x: x)
+        env = station.MarlStation(self.env_name, [embb_slice1, embb_slice2, embb_slice3], self.max_step, logger=station_log, warmup_times=self.warmup_times, step_time=0.1, plot=self.plot, root_path=self.root_path, obs_process_fn=lambda x: x)
 
         env.observation_spaces = {slice.name: spaces.Box(low=-np.inf, high=np.inf, shape=(3,5), dtype=float) for slice in env.Slice_lst}
 
