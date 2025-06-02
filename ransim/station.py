@@ -59,9 +59,6 @@ class SingelSliceStation(gym.Env):
         # Log information
         self.log_info()
 
-        # Warmup
-        self.warmup()
-
     def log_info(self):
         if self.logger:
             self.logger.info(f"-------------------- Slice --------------------")
@@ -269,9 +266,6 @@ class MarlStation(ParallelEnv):
 
         # Log information
         self.log_info()
-
-        # Warmup
-        self.warmup()
 
         # local raw obs for return state
         self.obs = None
