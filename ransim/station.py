@@ -68,9 +68,13 @@ class SingelSliceStation(gym.Env):
             for line in self.Slice.get_info().split("\n"):
                 self.logger.info(line)
 
-    def warmup(self):
+    def warmup(self, times=None):
+        if times is None:
+            warmup_times = self.warmup_times
+        else:
+            warmup_times = times
         if self.is_ready == False:
-            self.logger.info(f"Begin warmup for {self.warmup_times} times......")
+            self.logger.info(f"Begin warmup for {warmup_times} times......")
             
             # Skip the off time of onoff application
             n_skip_times = -1
@@ -83,13 +87,13 @@ class SingelSliceStation(gym.Env):
             if n_skip_times > 0:
                 self.logger.info(f"Skip {n_skip_times} times to avoid off time of onoff application.")
             
-            if self.warmup_times >= 1:
-                ns.Simulator.Stop(ns.Seconds(self.step_time*(self.warmup_times-1)))  # -1 here because it runs will run one step when check off time
+            if warmup_times >= 1:
+                ns.Simulator.Stop(ns.Seconds(self.step_time*(warmup_times-1)))  # -1 here because it runs will run one step when check off time
                 ns.Simulator.Run()
                 base_slice.merge_records()
-                self.Slice.stat_report(self.step_time*(self.warmup_times-1), if_log=False)
+                self.Slice.stat_report(self.step_time*(warmup_times-1), if_log=False)
                 base_slice.clean_all_records()
-                base_slice.current_time += self.step_time*self.warmup_times
+                base_slice.current_time += self.step_time*warmup_times
             
             self.logger.info("Warmup finished.")
             self.is_ready = True
@@ -133,7 +137,7 @@ class SingelSliceStation(gym.Env):
 
             self.Slice.clean_RB_record(random_RB)
 
-            self.warmup()
+            self.warmup(10)
             self.Slice.clean_stat()
 
             # Run simulation for one step
@@ -304,9 +308,13 @@ class MarlStation(ParallelEnv):
         base_slice.current_time += self.step_time
         return obs
     
-    def warmup(self):
+    def warmup(self, times=None):
+        if times is None:
+            warmup_times = self.warmup_times
+        else:
+            warmup_times = times
         if self.is_ready == False:
-            self.logger.info(f"Begin warmup for {self.warmup_times} times......")
+            self.logger.info(f"Begin warmup for {warmup_times} times......")
             
             # Skip the off time of onoff application
             n_skip_times = -1
@@ -319,14 +327,14 @@ class MarlStation(ParallelEnv):
             if n_skip_times > 0:
                 self.logger.info(f"Skip {n_skip_times} times to avoid off time of onoff application.")
             
-            if self.warmup_times >= 1:
-                ns.Simulator.Stop(ns.Seconds(self.step_time*(self.warmup_times-1)))  # -1 here because it runs will run one step when check off time
+            if warmup_times >= 1:
+                ns.Simulator.Stop(ns.Seconds(self.step_time*(warmup_times-1)))  # -1 here because it runs will run one step when check off time
                 ns.Simulator.Run()
                 base_slice.merge_records()
                 for slice in self.Slice_lst:
-                    slice.stat_report(self.step_time*(self.warmup_times-1), if_log=False)
+                    slice.stat_report(self.step_time*(warmup_times-1), if_log=False)
                 base_slice.clean_all_records()
-                base_slice.current_time += self.step_time*self.warmup_times
+                base_slice.current_time += self.step_time*warmup_times
             
             self.logger.info("Warmup finished.")
             self.is_ready = True
@@ -439,7 +447,7 @@ class MarlStation(ParallelEnv):
                 slice.handoverTo(random_RBs[slice])
                 slice.clean_RB_record(random_RBs[slice])
 
-            self.warmup()
+            self.warmup(10)
             for slice in self.Slice_lst:
                 slice.clean_stat()
 
