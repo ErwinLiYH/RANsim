@@ -12,13 +12,17 @@ except ImportError:
 
 class WarpperForGym(gym.Env):
     def __init__(self, env_name, max_step:int, unchange_terminate:int=0, plot:bool=False, \
-                 root_path:str="./", no_termi = False, num_obs_history:int=3, warmup_times=10):
+                 root_path:str="./", no_termi = False, num_obs_history:int=3, warmup_times=10, random_seed=None):
         self.env_name = env_name
         self.max_step = max_step
         self.unchange_terminate = unchange_terminate
         self.plot = plot
         self.root_path = root_path
         self.no_termi = no_termi
+        self.random_seed = random_seed
+        from ransim import config as ransim_config
+        if random_seed is not None:
+            ransim_config.reset_random_seed(self.random_seed)
         if not os.path.exists(self.root_path):
             os.makedirs(self.root_path)
         self.num_obs_history = num_obs_history
@@ -54,13 +58,17 @@ class FlattenObsGym(ObservationWrapper):
     
 class WarpperForPtP(ParallelEnv):
     def __init__(self, env_name, max_step:int, unchange_terminate:int=0, plot:bool=False, 
-                 root_path:str="./", no_termi = False, num_obs_history:int=3, warmup_times=10):
+                 root_path:str="./", no_termi = False, num_obs_history:int=3, warmup_times=10, random_seed=None):
         self.env_name = env_name
         self.max_step = max_step
         self.unchange_terminate = unchange_terminate
         self.plot = plot
         self.root_path = root_path
         self.no_termi = no_termi
+        self.random_seed = random_seed
+        from ransim import config as ransim_config
+        if random_seed is not None:
+            ransim_config.reset_random_seed(self.random_seed)
         if not os.path.exists(self.root_path):
             os.makedirs(self.root_path)
         self.num_obs_history = num_obs_history
