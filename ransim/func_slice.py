@@ -170,7 +170,7 @@ class EmbbSlice(base_slice.BasicRanSlice):
 
         r_sla = self.SLA_violation*(-100)
 
-        r_reconf = keep*5
+        r_reconf = -abs(self.RB_variation)
 
         self.rewards = {
             "se": r_se,
