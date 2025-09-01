@@ -192,6 +192,7 @@ class EmbbSlice(base_slice.BasicRanSlice):
             "SLA_violation": self.SLA_violation,
             "SE": self.SE,
             "bad_SE": self.bad_SE,
+            "RB_variation": self.RB_variation,
             "changed_RB": self.changed_RB,
             "changes_RB_rew": (1-int(self.changed_RB))*5,
             "throughput": self.total_throughput_sum_in_MB,
